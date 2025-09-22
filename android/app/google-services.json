@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "584229003904",
+    "project_id": "outh-b7b37",
+    "storage_bucket": "outh-b7b37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584229003904:android:a28a0d7578dc7e9d397c65",
+        "android_client_info": {
+          "package_name": "com.example.tourlicity"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqtmFxUCq9eMcsA7OjDRBQXMCGZU125r8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
