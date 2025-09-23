@@ -68,11 +68,32 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = response.data;
+        Logger.debug('📋 Auth response data: $data');
+        
+        // Validate response structure
+        if (data['token'] == null) {
+          Logger.error('❌ No token in auth response');
+          throw Exception('Authentication response missing token');
+        }
+        
+        if (data['user'] == null) {
+          Logger.error('❌ No user data in auth response');
+          throw Exception('Authentication response missing user data');
+        }
+        
         await _apiService.setAccessToken(data['token']);
         Logger.info('🎉 Authentication successful! User logged in.');
-        return User.fromJson(data['user']);
+        
+        try {
+          return User.fromJson(data['user']);
+        } catch (e) {
+          Logger.error('❌ Failed to parse user data: $e');
+          Logger.error('📋 User data: ${data['user']}');
+          throw Exception('Failed to parse user data: $e');
+        }
       } else {
         Logger.error('❌ Backend authentication failed: ${response.statusCode}');
+        Logger.error('📋 Response data: ${response.data}');
         throw Exception('Backend authentication failed');
       }
     } catch (e) {

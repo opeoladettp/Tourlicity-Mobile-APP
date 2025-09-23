@@ -1,3 +1,5 @@
+import '../utils/logger.dart';
+
 class User {
   final String id;
   final String email;
@@ -36,24 +38,49 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['_id'] ?? json['id'],
-      email: json['email'],
-      firstName: json['first_name'],
-      lastName: json['last_name'],
-      phoneNumber: json['phone_number'],
-      profilePicture: json['profile_picture'],
-      userType: json['user_type'],
-      providerId: json['provider_id'],
-      isActive: json['is_active'] ?? true,
-      dateOfBirth: json['date_of_birth'] != null ? DateTime.parse(json['date_of_birth']) : null,
-      country: json['country'],
-      gender: json['gender'],
-      passportNumber: json['passport_number'],
-      lastLogin: json['last_login'] != null ? DateTime.parse(json['last_login']) : null,
-      createdDate: DateTime.parse(json['created_date'] ?? DateTime.now().toIso8601String()),
-      updatedDate: DateTime.parse(json['updated_date'] ?? DateTime.now().toIso8601String()),
-    );
+    try {
+      // Helper function to safely extract string values
+      String? safeString(dynamic value) {
+        if (value == null) return null;
+        if (value is String) return value;
+        if (value is Map) return null; // Skip Map values that should be strings
+        return value.toString();
+      }
+
+      return User(
+        id: safeString(json['_id']) ?? safeString(json['id']) ?? '',
+        email: safeString(json['email']) ?? '',
+        firstName: safeString(json['first_name']),
+        lastName: safeString(json['last_name']),
+        phoneNumber: safeString(json['phone_number']),
+        profilePicture: safeString(json['profile_picture']),
+        userType: safeString(json['user_type']) ?? 'tourist',
+        providerId: json['provider_id'] is Map 
+            ? safeString(json['provider_id']['_id']) ?? safeString(json['provider_id']['id'])
+            : safeString(json['provider_id']),
+        isActive: json['is_active'] ?? true,
+        dateOfBirth: json['date_of_birth'] != null && json['date_of_birth'] is String
+            ? DateTime.tryParse(json['date_of_birth'])
+            : null,
+        country: safeString(json['country']),
+        gender: safeString(json['gender']),
+        passportNumber: safeString(json['passport_number']),
+        lastLogin: json['last_login'] != null && json['last_login'] is String
+            ? DateTime.tryParse(json['last_login'])
+            : null,
+        createdDate: DateTime.tryParse(
+              safeString(json['created_date']) ?? DateTime.now().toIso8601String()
+            ) ?? DateTime.now(),
+        updatedDate: DateTime.tryParse(
+              safeString(json['updated_date']) ?? DateTime.now().toIso8601String()
+            ) ?? DateTime.now(),
+      );
+    } catch (e) {
+      // Log the problematic JSON for debugging
+      Logger.error('❌ Error parsing User from JSON: $e');
+      Logger.error('📋 JSON data: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
