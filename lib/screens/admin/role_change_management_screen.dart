@@ -354,10 +354,21 @@ class _RoleChangeManagementScreenState extends State<RoleChangeManagementScreen>
       
       // Show more detailed error message
       String errorMessage = 'Error processing request';
-      if (e.toString().contains('Invalid request')) {
+      if (e.toString().contains('Admin notes are required')) {
+        errorMessage = 'Admin notes are required to process this request.';
+      } else if (e.toString().contains('Validation Error')) {
+        // Extract the validation error details
+        final errorStr = e.toString();
+        final startIndex = errorStr.indexOf('Validation Error: ');
+        if (startIndex != -1) {
+          errorMessage = errorStr.substring(startIndex + 18);
+        } else {
+          errorMessage = 'Validation failed. Please check your input.';
+        }
+      } else if (e.toString().contains('Invalid request')) {
         errorMessage = 'Invalid request data. Please try again.';
       } else if (e.toString().contains('400')) {
-        errorMessage = 'Bad request. The server rejected the request format.';
+        errorMessage = 'Bad request. Please check that all required fields are filled.';
       } else if (e.toString().contains('401')) {
         errorMessage = 'Authentication required. Please log in again.';
       } else if (e.toString().contains('403')) {
@@ -383,37 +394,59 @@ class _RoleChangeManagementScreenState extends State<RoleChangeManagementScreen>
     
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${status == 'approved' ? 'Approve' : 'Reject'} Request'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Add notes for this ${status} decision:'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Enter admin notes...',
-                border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('${status == 'approved' ? 'Approve' : 'Reject'} Request'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Add notes for this $status decision (required):'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: status == 'approved' 
+                      ? 'e.g., Application meets all requirements and is approved.'
+                      : 'e.g., Missing required documentation. Please resubmit with complete information.',
+                  border: const OutlineInputBorder(),
+                  labelText: 'Admin Notes *',
+                  helperText: 'Required field - explain your decision',
+                ),
+                onChanged: (value) => setState(() {}),
               ),
+              if (controller.text.trim().isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Admin notes are required to process this request',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: controller.text.trim().isEmpty
+                  ? null
+                  : () {
+                      final notes = controller.text.trim();
+                      if (notes.isNotEmpty) {
+                        Navigator.of(context).pop(notes);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: status == 'approved' ? Colors.green : Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(status == 'approved' ? 'Approve' : 'Reject'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: status == 'approved' ? Colors.green : Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(status == 'approved' ? 'Approve' : 'Reject'),
-          ),
-        ],
       ),
     );
   }

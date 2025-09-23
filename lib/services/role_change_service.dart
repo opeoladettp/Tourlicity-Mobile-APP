@@ -270,6 +270,9 @@ class RoleChangeService {
       if (!['approved', 'rejected'].contains(status.toLowerCase())) {
         throw Exception('Status must be either "approved" or "rejected"');
       }
+      if (adminNotes.trim().isEmpty) {
+        throw Exception('Admin notes are required and cannot be empty');
+      }
 
       // First, try to get the request to verify it exists
       Logger.info('🔍 Verifying request exists: $requestId');
@@ -281,9 +284,15 @@ class RoleChangeService {
         throw Exception('Request not found or inaccessible: $requestId');
       }
 
+      // Ensure admin notes are not empty (backend requirement)
+      final notes = adminNotes.trim();
+      final finalNotes = notes.isEmpty 
+          ? 'Request ${status.toLowerCase()} by system administrator'
+          : notes;
+
       final requestData = {
         'status': status.toLowerCase(),
-        'admin_notes': adminNotes.trim(),
+        'admin_notes': finalNotes,
       };
 
       Logger.info('🔄 Processing role change request $requestId with status: $status');
@@ -313,12 +322,17 @@ class RoleChangeService {
             errorMessage = data['message'];
           } else if (data.containsKey('error')) {
             errorMessage = data['error'];
+            // If there are validation details, include them
+            if (data.containsKey('details') && data['details'] is List) {
+              final details = (data['details'] as List).join(', ');
+              errorMessage = '$errorMessage: $details';
+            }
           } else if (data.containsKey('details')) {
             errorMessage = data['details'].toString();
           }
         }
         Logger.error('❌ 400 Error details: $errorMessage');
-        throw Exception('Bad Request: $errorMessage');
+        throw Exception('Validation Error: $errorMessage');
       }
       
       throw Exception('Failed to process role change request: HTTP ${response.statusCode}');
