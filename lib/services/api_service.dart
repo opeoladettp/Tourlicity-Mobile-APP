@@ -22,13 +22,26 @@ class ApiService {
         final token = await getAccessToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
+          Logger.debug('🔑 API Request with token: ${token.substring(0, 20)}...');
+        } else {
+          Logger.warning('⚠️ API Request without token');
+        }
+        Logger.debug('📡 ${options.method} ${options.path}');
+        if (options.data != null) {
+          Logger.debug('📤 Request data: ${options.data}');
         }
         handler.next(options);
       },
       onError: (error, handler) {
+        Logger.error('🚨 API Error: ${error.response?.statusCode} ${error.message}');
+        
         if (error.response?.statusCode == 401) {
-          // Token expired, clear it
+          Logger.warning('🔒 Token expired, clearing access token');
           clearAccessToken();
+        }
+        
+        if (error.response?.statusCode == 400) {
+          Logger.error('❌ Bad Request (400): ${error.response?.data}');
         }
         
         // Log network errors for debugging

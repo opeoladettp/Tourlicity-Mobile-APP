@@ -194,7 +194,11 @@ class RoleChangeService {
         if (status != null && status.isNotEmpty) 'status': status,
       };
 
+      Logger.info('🔍 Fetching role change requests with params: $queryParams');
       final response = await _apiService.get('/role-change-requests', queryParameters: queryParams);
+      
+      Logger.info('📡 Role change requests response status: ${response.statusCode}');
+      Logger.debug('📡 Role change requests response data type: ${response.data.runtimeType}');
       
       if (response.statusCode == 200) {
         dynamic responseData = response.data;
@@ -207,12 +211,21 @@ class RoleChangeService {
             responseData = responseData['requests'];
           } else {
             Logger.warning('⚠️ API returned Map instead of List for all role change requests');
+            Logger.debug('Response keys: ${responseData.keys.toList()}');
             return [];
           }
         }
         
         if (responseData is List) {
-          return responseData.map((json) => RoleChangeRequest.fromJson(json)).toList();
+          final requests = responseData.map((json) => RoleChangeRequest.fromJson(json)).toList();
+          Logger.info('✅ Loaded ${requests.length} role change requests');
+          
+          // Log request IDs for debugging
+          for (final request in requests) {
+            Logger.debug('Request ID: "${request.id}", Type: ${request.requestType}, Status: ${request.status}');
+          }
+          
+          return requests;
         }
         
         Logger.warning('⚠️ Unexpected response format for all role change requests: ${responseData.runtimeType}');
@@ -247,21 +260,76 @@ class RoleChangeService {
     String adminNotes,
   ) async {
     try {
+      // Validate inputs
+      if (requestId.trim().isEmpty) {
+        throw Exception('Request ID is required');
+      }
+      if (status.trim().isEmpty) {
+        throw Exception('Status is required');
+      }
+      if (!['approved', 'rejected'].contains(status.toLowerCase())) {
+        throw Exception('Status must be either "approved" or "rejected"');
+      }
+
+      // First, try to get the request to verify it exists
+      Logger.info('🔍 Verifying request exists: $requestId');
+      try {
+        await getRoleChangeRequestById(requestId);
+        Logger.info('✅ Request verified, proceeding with processing');
+      } catch (e) {
+        Logger.error('❌ Request verification failed: $e');
+        throw Exception('Request not found or inaccessible: $requestId');
+      }
+
+      final requestData = {
+        'status': status.toLowerCase(),
+        'admin_notes': adminNotes.trim(),
+      };
+
+      Logger.info('🔄 Processing role change request $requestId with status: $status');
+      Logger.debug('Request data: $requestData');
+      Logger.debug('Endpoint: /role-change-requests/$requestId/process');
+
       final response = await _apiService.put(
         '/role-change-requests/$requestId/process',
-        data: {
-          'status': status,
-          'admin_notes': adminNotes,
-        },
+        data: requestData,
       );
+      
+      Logger.info('📡 API Response status: ${response.statusCode}');
+      Logger.debug('📡 API Response headers: ${response.headers}');
+      Logger.debug('📡 API Response data: ${response.data}');
       
       if (response.statusCode == 200) {
         Logger.info('✅ Role change request $status successfully');
         return RoleChangeRequest.fromJson(response.data['request'] ?? response.data);
       }
-      throw Exception('Failed to process role change request');
+      
+      // Handle different error status codes
+      if (response.statusCode == 400) {
+        String errorMessage = 'Invalid request data';
+        if (response.data is Map<String, dynamic>) {
+          final data = response.data as Map<String, dynamic>;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'];
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'];
+          } else if (data.containsKey('details')) {
+            errorMessage = data['details'].toString();
+          }
+        }
+        Logger.error('❌ 400 Error details: $errorMessage');
+        throw Exception('Bad Request: $errorMessage');
+      }
+      
+      throw Exception('Failed to process role change request: HTTP ${response.statusCode}');
     } catch (e) {
-      Logger.error('Failed to process role change request: $e');
+      Logger.error('❌ Failed to process role change request: $e');
+      
+      // Provide more specific error messages
+      if (e.toString().contains('400')) {
+        throw Exception('Invalid request: Please check that the request ID is valid and the status is either "approved" or "rejected"');
+      }
+      
       rethrow;
     }
   }

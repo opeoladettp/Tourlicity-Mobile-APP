@@ -330,6 +330,10 @@ class _RoleChangeManagementScreenState extends State<RoleChangeManagementScreen>
     if (adminNotes == null) return;
 
     try {
+      Logger.info('🔄 Processing request: ${request.id} with status: $status');
+      Logger.info('📝 Admin notes: $adminNotes');
+      Logger.info('📋 Request type: ${request.requestType}');
+      
       await _roleChangeService.processRoleChangeRequest(
         request.id,
         status,
@@ -339,19 +343,35 @@ class _RoleChangeManagementScreenState extends State<RoleChangeManagementScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Request ${status} successfully'),
+            content: Text('Request $status successfully'),
             backgroundColor: status == 'approved' ? Colors.green : Colors.red,
           ),
         );
         _loadRequests();
       }
     } catch (e) {
-      Logger.error('Failed to process request: $e');
+      Logger.error('❌ Failed to process request: $e');
+      
+      // Show more detailed error message
+      String errorMessage = 'Error processing request';
+      if (e.toString().contains('Invalid request')) {
+        errorMessage = 'Invalid request data. Please try again.';
+      } else if (e.toString().contains('400')) {
+        errorMessage = 'Bad request. The server rejected the request format.';
+      } else if (e.toString().contains('401')) {
+        errorMessage = 'Authentication required. Please log in again.';
+      } else if (e.toString().contains('403')) {
+        errorMessage = 'Access denied. You may not have permission to perform this action.';
+      } else if (e.toString().contains('404')) {
+        errorMessage = 'Request not found. It may have already been processed.';
+      }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error processing request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
