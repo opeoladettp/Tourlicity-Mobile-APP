@@ -130,14 +130,24 @@ class AuthService {
   Future<User> updateProfile({
     required String firstName,
     required String lastName,
-    String? phone,
+    String? phoneNumber,
+    String? profilePicture,
+    DateTime? dateOfBirth,
+    String? country,
+    String? gender,
+    String? passportNumber,
   }) async {
     final response = await _apiService.put(
       '/auth/profile',
       data: {
         'first_name': firstName,
         'last_name': lastName,
-        if (phone != null) 'phone': phone,
+        if (phoneNumber != null) 'phone_number': phoneNumber,
+        if (profilePicture != null) 'profile_picture': profilePicture,
+        if (dateOfBirth != null) 'date_of_birth': dateOfBirth.toIso8601String().split('T')[0],
+        if (country != null) 'country': country,
+        if (gender != null) 'gender': gender,
+        if (passportNumber != null) 'passport_number': passportNumber,
       },
     );
 

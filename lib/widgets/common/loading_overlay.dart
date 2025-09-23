@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 class LoadingOverlay extends StatelessWidget {
-  final bool isLoading;
   final Widget child;
+  final bool isLoading;
+  final String? loadingText;
 
   const LoadingOverlay({
     super.key,
-    required this.isLoading,
     required this.child,
+    required this.isLoading,
+    this.loadingText,
   });
 
   @override
@@ -17,9 +19,26 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: const Color.fromRGBO(0, 0, 0, 0.3),
-            child: const Center(
-              child: CircularProgressIndicator(),
+            color: Colors.black.withValues(alpha: 0.3),
+            child: Center(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      if (loadingText != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          loadingText!,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
       ],

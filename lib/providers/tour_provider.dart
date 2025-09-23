@@ -28,7 +28,7 @@ class TourProvider with ChangeNotifier {
       // In offline mode, just set empty tours list instead of showing error
       _tours = [];
       // Don't set error for network timeouts in offline mode
-      if (!e.toString().contains('connection timeout') && 
+      if (!e.toString().contains('connection timeout') &&
           !e.toString().contains('Connection refused')) {
         _setError(e.toString());
       }
@@ -101,13 +101,15 @@ class TourProvider with ChangeNotifier {
 
   Future<bool> createTour({
     required String providerId,
-    required String name,
+    required String tourName,
     String? description,
-    String? templateId,
+    String? tourTemplateId,
     DateTime? startDate,
     DateTime? endDate,
     int maxTourists = 15,
     String? groupChatLink,
+    String? featuresImage,
+    List<String>? teaserImages,
   }) async {
     _setLoading(true);
     _clearError();
@@ -115,13 +117,15 @@ class TourProvider with ChangeNotifier {
     try {
       await _tourService.createTour(
         providerId: providerId,
-        name: name,
+        tourName: tourName,
         description: description,
-        templateId: templateId,
+        tourTemplateId: tourTemplateId,
         startDate: startDate,
         endDate: endDate,
         maxTourists: maxTourists,
         groupChatLink: groupChatLink,
+        featuresImage: featuresImage,
+        teaserImages: teaserImages,
       );
       await loadProviderTours(); // Refresh the list
       return true;

@@ -61,31 +61,7 @@ class TourService {
       throw Exception('Tour not found');
     } catch (e) {
       Logger.warning('⚠️ API call failed for tour search: $e');
-      // For offline testing, create a mock tour if specific join codes are used
-      if (joinCode.toUpperCase() == 'TEST123' ||
-          joinCode.toUpperCase() == 'DEMO') {
-        return Tour(
-          id: 'mock_tour_123',
-          tourName: 'Mock City Walking Tour',
-          description: 'A sample tour for testing purposes',
-          status: 'published',
-          joinCode: joinCode.toUpperCase(),
-          providerId: 'offline_provider_${DateTime.now().millisecondsSinceEpoch}',
-          maxTourists: 15,
-          currentRegistrations: 5,
-          remainingSpots: 10,
-          pricePerPerson: 25.0,
-          currency: 'USD',
-          isFeatured: false,
-          tags: ['walking', 'city', 'test'],
-          durationDays: 1,
-          createdDate: DateTime.now(),
-          updatedDate: DateTime.now(),
-        );
-      }
-      throw Exception(
-        'Tour not found (offline mode - try "TEST123" or "DEMO")',
-      );
+      throw Exception('Tour not found');
     }
   }
 
@@ -109,19 +85,7 @@ class TourService {
       throw Exception('Failed to register for tour');
     } catch (e) {
       Logger.warning('⚠️ API call failed for tour registration: $e');
-      // For offline testing, create a mock registration
-      return Registration(
-        id: 'offline_registration_${DateTime.now().millisecondsSinceEpoch}',
-        customTourId: customTourId,
-        touristId: 'offline_user_${DateTime.now().millisecondsSinceEpoch}',
-        providerId: 'offline_provider_${DateTime.now().millisecondsSinceEpoch}',
-        status: 'pending',
-        confirmationCode: 'CONF${DateTime.now().millisecondsSinceEpoch}',
-        registrationDate: DateTime.now(),
-        paymentStatus: 'pending',
-        createdDate: DateTime.now(),
-        updatedDate: DateTime.now(),
-      );
+      rethrow;
     }
   }
 
@@ -144,27 +108,31 @@ class TourService {
 
   Future<Tour> createTour({
     required String providerId,
-    required String name,
+    required String tourName,
     String? description,
-    String? templateId,
+    String? tourTemplateId,
     DateTime? startDate,
     DateTime? endDate,
     int maxTourists = 15,
     String? groupChatLink,
+    String? featuresImage,
+    List<String>? teaserImages,
   }) async {
     final response = await _apiService.post(
       '/custom-tours',
       data: {
         'provider_id': providerId,
-        'tour_name': name,
-        'description': description,
-        if (templateId != null) 'tour_template_id': templateId,
+        'tour_name': tourName,
+        if (description != null) 'description': description,
+        if (tourTemplateId != null) 'tour_template_id': tourTemplateId,
         if (startDate != null)
           'start_date': startDate.toIso8601String().split('T')[0],
         if (endDate != null)
           'end_date': endDate.toIso8601String().split('T')[0],
         'max_tourists': maxTourists,
         if (groupChatLink != null) 'group_chat_link': groupChatLink,
+        if (featuresImage != null) 'features_image': featuresImage,
+        if (teaserImages != null) 'teaser_images': teaserImages,
       },
     );
 

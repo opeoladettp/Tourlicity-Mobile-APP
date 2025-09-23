@@ -260,7 +260,7 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
 
       final success = await tourProvider.createTour(
         providerId: currentUser!.providerId!,
-        name: _nameController.text.trim(),
+        tourName: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),

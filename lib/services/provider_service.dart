@@ -8,8 +8,29 @@ class ProviderService {
   Future<List<Provider>> getAllProviders() async {
     final response = await _apiService.get('/providers');
     if (response.statusCode == 200) {
-      final List<dynamic> data = response.data['data'] ?? response.data;
-      return data.map((json) => Provider.fromJson(json)).toList();
+      // Handle both List and Map responses
+      dynamic responseData = response.data;
+
+      // If response is a Map, try to extract the data array
+      if (responseData is Map<String, dynamic>) {
+        if (responseData.containsKey('data') && responseData['data'] is List) {
+          responseData = responseData['data'];
+        } else if (responseData.containsKey('providers') &&
+            responseData['providers'] is List) {
+          responseData = responseData['providers'];
+        } else {
+          // If it's a Map but not containing a list, return empty list
+          return [];
+        }
+      }
+
+      // If response is a List, process it
+      if (responseData is List) {
+        return responseData.map((json) => Provider.fromJson(json)).toList();
+      }
+
+      // If we get here, return empty list
+      return [];
     }
     throw Exception('Failed to load providers');
   }
@@ -70,10 +91,39 @@ class ProviderService {
   Future<List<Registration>> getProviderRegistrations() async {
     final response = await _apiService.get('/registrations');
     if (response.statusCode == 200) {
-      final List<dynamic> data = response.data['data'] ?? response.data;
-      return data.map((json) => Registration.fromJson(json)).toList();
+      // Handle both List and Map responses
+      dynamic responseData = response.data;
+
+      // If response is a Map, try to extract the data array
+      if (responseData is Map<String, dynamic>) {
+        if (responseData.containsKey('data') && responseData['data'] is List) {
+          responseData = responseData['data'];
+        } else if (responseData.containsKey('registrations') &&
+            responseData['registrations'] is List) {
+          responseData = responseData['registrations'];
+        } else {
+          // If it's a Map but not containing a list, return empty list
+          return [];
+        }
+      }
+
+      // If response is a List, process it
+      if (responseData is List) {
+        return responseData.map((json) => Registration.fromJson(json)).toList();
+      }
+
+      // If we get here, return empty list
+      return [];
     }
     throw Exception('Failed to load registrations');
+  }
+
+  Future<List<dynamic>> getProviderAdmins(String providerId) async {
+    final response = await _apiService.get('/providers/$providerId/admins');
+    if (response.statusCode == 200) {
+      return response.data['admins'] ?? response.data;
+    }
+    throw Exception('Failed to load provider admins');
   }
 
   Future<Map<String, dynamic>> getProviderStats(String providerId) async {
@@ -84,7 +134,18 @@ class ProviderService {
     throw Exception('Failed to load provider stats');
   }
 
-  Future<void> updateRegistrationStatus(String registrationId, String status) async {
+  Future<Map<String, dynamic>> getRegistrationStats() async {
+    final response = await _apiService.get('/registrations/stats');
+    if (response.statusCode == 200) {
+      return response.data['stats'] ?? response.data;
+    }
+    throw Exception('Failed to load registration stats');
+  }
+
+  Future<void> updateRegistrationStatus(
+    String registrationId,
+    String status,
+  ) async {
     final response = await _apiService.put(
       '/registrations/$registrationId/status',
       data: {'status': status},
@@ -94,25 +155,17 @@ class ProviderService {
     }
   }
 
-  Future<Map<String, dynamic>> submitProviderApplication(Map<String, dynamic> applicationData) async {
-    try {
-      final response = await _apiService.post(
-        '/provider-applications',
-        data: applicationData,
-      );
-      
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return response.data;
-      }
-      throw Exception('Failed to submit provider application');
-    } catch (e) {
-      // For offline testing, simulate successful submission
-      await Future.delayed(const Duration(seconds: 2));
-      return {
-        'success': true,
-        'message': 'Application submitted successfully',
-        'application_id': 'mock_${DateTime.now().millisecondsSinceEpoch}',
-      };
+  Future<Provider> toggleProviderStatusById(String id, bool isActive) async {
+    final response = await _apiService.patch(
+      '/providers/$id/status',
+      data: {'is_active': isActive},
+    );
+    if (response.statusCode == 200) {
+      return Provider.fromJson(response.data['provider'] ?? response.data);
     }
+    throw Exception('Failed to toggle provider status');
   }
+
+  // Note: Provider applications are now handled through the RoleChangeService
+  // using the /role-change-requests endpoint
 }

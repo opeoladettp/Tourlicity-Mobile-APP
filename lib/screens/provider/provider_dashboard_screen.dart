@@ -58,154 +58,162 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              await tourProvider.loadProviderStats();
-              await tourProvider.loadProviderTours();
-            },
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Stats Cards
-                  if (tourProvider.providerStats != null) ...[
-                    const Text(
-                      'Overview',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatsGrid(tourProvider.providerStats!),
-                    const SizedBox(height: 32),
-                  ],
-                  
-                  // Tours Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+          return SafeArea(
+            bottom: true,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await tourProvider.loadProviderStats();
+                await tourProvider.loadProviderTours();
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 32,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Stats Cards
+                    if (tourProvider.providerStats != null) ...[
                       const Text(
-                        'My Tours',
+                        'Overview',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () => context.push(AppRoutes.tourManagement),
-                        icon: const Icon(Icons.add),
-                        label: const Text('New Tour'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
+                      const SizedBox(height: 16),
+                      _buildStatsGrid(tourProvider.providerStats!),
+                      const SizedBox(height: 32),
                     ],
-                  ),       
-           const SizedBox(height: 16),
-                  if (tourProvider.tours.isEmpty)
-                    Center(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 32),
-                          const Icon(
-                            Icons.tour_outlined,
-                            size: 64,
-                            color: Colors.grey,
+                    
+                    // Tours Section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'My Tours',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No tours created yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => context.push(AppRoutes.tourManagement),
+                          icon: const Icon(Icons.add),
+                          label: const Text('New Tour'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6366F1),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ), 
+                    const SizedBox(height: 16),
+                    if (tourProvider.tours.isEmpty)
+                      Center(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 32),
+                            const Icon(
+                              Icons.tour_outlined,
+                              size: 64,
                               color: Colors.grey,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Create your first tour to get started',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () => context.push(AppRoutes.tourManagement),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create Tour'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1),
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: tourProvider.tours.length,
-                      itemBuilder: (context, index) {
-                        final tour = tourProvider.tours[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: const Color(0xFF6366F1),
-                              child: Text(
-                                tour.name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(color: Colors.white),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No tours created yet',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
                               ),
                             ),
-                            title: Text(
-                              tour.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Create your first tour to get started',
+                              style: TextStyle(color: Colors.grey),
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (tour.description != null)
-                                  Text(tour.description!),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      _getStatusIcon(tour.status),
-                                      size: 16,
-                                      color: _getStatusColor(tour.status),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      tour.status.toUpperCase(),
-                                      style: TextStyle(
-                                        color: _getStatusColor(tour.status),
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    const Icon(Icons.qr_code, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      tour.joinCode,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () => context.push(AppRoutes.tourManagement),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Create Tour'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6366F1),
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: tourProvider.tours.length,
+                        itemBuilder: (context, index) {
+                          final tour = tourProvider.tours[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFF6366F1),
+                                child: Text(
+                                  tour.name.substring(0, 1).toUpperCase(),
+                                  style: const TextStyle(color: Colors.white),
                                 ),
-                              ],
+                              ),
+                              title: Text(
+                                tour.name,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (tour.description != null)
+                                    Text(tour.description!),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        _getStatusIcon(tour.status),
+                                        size: 16,
+                                        color: _getStatusColor(tour.status),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        tour.status.toUpperCase(),
+                                        style: TextStyle(
+                                          color: _getStatusColor(tour.status),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      const Icon(Icons.qr_code, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        tour.joinCode,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios),
+                              onTap: () => context.push('${AppRoutes.tourManagement}?id=${tour.id}'),
                             ),
-                            trailing: const Icon(Icons.arrow_forward_ios),
-                            onTap: () => context.push('${AppRoutes.tourManagement}?id=${tour.id}'),
-                          ),
-                        );
-                      },
-                    ),
-                ],
+                          );
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
           );
@@ -312,6 +320,4 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         return Colors.grey;
     }
   }
-
-
 }

@@ -21,7 +21,10 @@ class TourlicityApp extends StatelessWidget {
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
-          // Auth status will be checked when needed
+          // Check auth status on app startup
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            authProvider.checkAuthStatus();
+          });
 
           return MaterialApp.router(
             title: 'Tourlicity',
