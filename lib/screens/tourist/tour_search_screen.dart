@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/tour_provider.dart';
 import '../../models/tour.dart';
 import '../../widgets/common/loading_overlay.dart';
+import '../../widgets/common/notification_icon.dart';
+import '../../widgets/common/settings_dropdown.dart';
+import '../../config/routes.dart';
 
 class TourSearchScreen extends StatefulWidget {
   const TourSearchScreen({super.key});
@@ -29,6 +33,7 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
         title: const Text('Search Tours'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
+        actions: const [NotificationIcon(), SettingsDropdown()],
       ),
       body: Consumer<TourProvider>(
         builder: (context, tourProvider, child) {
@@ -41,10 +46,7 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
                 children: [
                   const Text(
                     'Enter Join Code',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -54,14 +56,41 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
                   const SizedBox(height: 24),
                   TextField(
                     controller: _joinCodeController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Join Code',
                       hintText: 'e.g., TOUR123',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.qr_code),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: IconButton(
+                        icon: const Icon(
+                          Icons.qr_code_scanner,
+                          color: Color(0xFF6366F1),
+                        ),
+                        onPressed: _openQRScanner,
+                        tooltip: 'Scan QR Code',
+                      ),
                     ),
                     textCapitalization: TextCapitalization.characters,
                     onSubmitted: (_) => _searchTour(),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tap the QR code icon to scan a tour QR code',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -84,7 +113,9 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
                       decoration: BoxDecoration(
                         color: const Color.fromRGBO(244, 67, 54, 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color.fromRGBO(244, 67, 54, 0.3)),
+                        border: Border.all(
+                          color: const Color.fromRGBO(244, 67, 54, 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -99,8 +130,8 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
                         ],
                       ),
                     ),
-                  ],    
-              if (_foundTour != null) ...[
+                  ],
+                  if (_foundTour != null) ...[
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 16),
@@ -166,7 +197,8 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () => _registerForTour(_foundTour!.joinCode),
+                                onPressed: () =>
+                                    _registerForTour(_foundTour!.joinCode),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
@@ -188,40 +220,73 @@ class _TourSearchScreenState extends State<TourSearchScreen> {
     );
   }
 
+  void _openQRScanner() async {
+    try {
+      // Navigate to QR scanner screen
+      final result = await context.push(AppRoutes.qrScanner);
+      
+      // If a join code was scanned, use it
+      if (result != null && result is String && result.isNotEmpty) {
+        _joinCodeController.text = result;
+        // Automatically search for the tour
+        _searchTour();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open QR scanner: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _searchTour() async {
     if (_joinCodeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a join code')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a join code')),
+        );
+      }
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-      _foundTour = null;
-    });
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+        _foundTour = null;
+      });
+    }
 
     final tourProvider = Provider.of<TourProvider>(context, listen: false);
-    final tour = await tourProvider.searchTourByJoinCode(_joinCodeController.text.trim());
-    
-    setState(() {
-      _isSearching = false;
-      _foundTour = tour;
-    });
+    final tour = await tourProvider.searchTourByJoinCode(
+      _joinCodeController.text.trim(),
+    );
+
+    if (mounted) {
+      setState(() {
+        _isSearching = false;
+        _foundTour = tour;
+      });
+    }
   }
 
   void _registerForTour(String joinCode) async {
     final tourProvider = Provider.of<TourProvider>(context, listen: false);
     final success = await tourProvider.registerForTour(joinCode);
-    
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Successfully registered for tour!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.of(context).pop();
+
+    if (mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully registered for tour!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
     }
   }
 

@@ -4,6 +4,7 @@ import '../../models/role_change_request.dart';
 import '../../utils/logger.dart';
 import '../../config/routes.dart';
 import '../../widgets/common/navigation_drawer.dart' as nav;
+import '../../widgets/common/app_bar_actions.dart';
 
 class RoleChangeManagementScreen extends StatefulWidget {
   const RoleChangeManagementScreen({super.key});
@@ -70,10 +71,7 @@ class _RoleChangeManagementScreenState extends State<RoleChangeManagementScreen>
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadRequests,
-          ),
+          const BothActions(),
         ],
       ),
       drawer: nav.NavigationDrawer(

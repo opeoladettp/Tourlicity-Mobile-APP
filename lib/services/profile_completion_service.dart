@@ -183,6 +183,16 @@ class ProfileCompletionService {
       'Uruguay', 'Venezuela', 'Vietnam',
     ];
   }
+
+  /// Get list of genders for dropdown
+  List<String> getGenders() {
+    return [
+      'Male',
+      'Female',
+      'Non-binary',
+      'Prefer not to say',
+    ];
+  }
 }
 
 enum ProfileCompletionStep {

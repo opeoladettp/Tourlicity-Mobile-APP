@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-
+import '../../config/routes.dart';
 import '../../widgets/common/loading_overlay.dart';
+import '../../widgets/common/safe_bottom_padding.dart';
 import '../../utils/logger.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passportController = TextEditingController();
+  final _profilePictureController = TextEditingController();
 
   // Form data
   DateTime? _selectedDateOfBirth;
@@ -48,6 +51,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       _lastNameController.text = user.lastName ?? '';
       _phoneController.text = user.phoneNumber ?? '';
       _passportController.text = user.passportNumber ?? '';
+      _profilePictureController.text = user.profilePicture ?? '';
       _selectedDateOfBirth = user.dateOfBirth;
       _selectedCountry = user.country;
       _selectedGender = user.gender;
@@ -70,6 +74,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     _lastNameController.dispose();
     _phoneController.dispose();
     _passportController.dispose();
+    _profilePictureController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -161,7 +166,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   }
 
   Widget _buildBasicInfoStep() {
-    return SingleChildScrollView(
+    return SafeScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
         key: _basicInfoFormKey,
@@ -207,6 +212,44 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _profilePictureController,
+              decoration: const InputDecoration(
+                labelText: 'Profile Picture URL (Optional)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.photo_camera),
+                hintText: 'https://example.com/your-photo.jpg',
+              ),
+              onChanged: (value) {
+                setState(() {}); // Trigger rebuild to show/hide preview
+              },
+            ),
+            if (_profilePictureController.text.trim().isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Center(
+                child: Column(
+                  children: [
+                    const Text(
+                      'Profile Picture Preview:',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: NetworkImage(_profilePictureController.text.trim()),
+                      onBackgroundImageError: (exception, stackTrace) {
+                        // Handle image loading error
+                      },
+                      child: _profilePictureController.text.trim().isEmpty
+                          ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -231,7 +274,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   }
 
   Widget _buildContactInfoStep() {
-    return SingleChildScrollView(
+    return SafeScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
         key: _contactInfoFormKey,
@@ -304,7 +347,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final countries = authProvider.getCountries();
 
-    return SingleChildScrollView(
+    return SafeScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
         key: _personalInfoFormKey,
@@ -525,9 +568,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     if (_firstNameController.text.trim().isEmpty ||
         _lastNameController.text.trim().isEmpty ||
         _phoneController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all required fields')),
+        );
+      }
       return;
     }
 
@@ -536,20 +581,24 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     // For tourists, require additional fields
     if (authProvider.user?.userType == 'tourist') {
       if (_selectedDateOfBirth == null || _selectedCountry == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Date of birth and country are required for tourists',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Date of birth and country are required for tourists',
+              ),
             ),
-          ),
-        );
+          );
+        }
         return;
       }
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       await authProvider.completeProfile(
@@ -562,6 +611,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         passportNumber: _passportController.text.trim().isNotEmpty
             ? _passportController.text.trim()
             : null,
+        profilePicture: _profilePictureController.text.trim().isNotEmpty
+            ? _profilePictureController.text.trim()
+            : null,
       );
 
       if (mounted) {
@@ -572,8 +624,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           ),
         );
 
-        // Navigate to main app
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        // Navigate to unified dashboard
+        context.go(AppRoutes.dashboard);
       }
     } catch (e) {
       Logger.error('Profile completion failed: $e');

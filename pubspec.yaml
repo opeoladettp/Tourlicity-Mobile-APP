@@ -51,6 +51,27 @@ dependencies:
   
   # Utils
   intl: ^0.19.0
+  
+  # QR Code Scanner
+  mobile_scanner: ^5.0.1
+  
+  # Image Picker for feature images
+  image_picker: ^1.0.4
+  
+  # File Picker for documents and files
+  file_picker: ^8.0.0+1
+  
+  # Permission Handler
+  permission_handler: ^11.0.1
+  
+  # Push Notifications - Using MongoDB Backend Exclusively
+  # Firebase dependencies (no longer needed)
+  # firebase_core: ^2.24.2
+  # firebase_messaging: ^14.7.10
+  
+  # Local notifications (temporarily disabled due to Android build issues)
+  # flutter_local_notifications: ^15.1.3
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   flutter_test:

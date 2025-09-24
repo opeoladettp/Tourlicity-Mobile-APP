@@ -11,6 +11,9 @@ import '../../models/role_change_request.dart';
 import '../../utils/logger.dart';
 import '../../config/routes.dart';
 import '../../widgets/common/navigation_drawer.dart' as nav;
+import '../../widgets/common/notification_icon.dart';
+import '../../widgets/common/settings_dropdown.dart';
+import '../../widgets/common/safe_bottom_padding.dart';
 
 class SystemAdminDashboardScreen extends StatefulWidget {
   const SystemAdminDashboardScreen({super.key});
@@ -87,20 +90,16 @@ class _SystemAdminDashboardScreenState
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDashboardData,
-          ),
+          const NotificationIcon(),
+          const SettingsDropdown(),
         ],
       ),
-      drawer: nav.NavigationDrawer(
-        currentRoute: AppRoutes.systemAdminDashboard,
-      ),
+      drawer: nav.NavigationDrawer(currentRoute: AppRoutes.dashboard),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadDashboardData,
-              child: SingleChildScrollView(
+              child: SafeScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

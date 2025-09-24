@@ -5,6 +5,9 @@ import '../../providers/tour_provider.dart';
 import '../../config/routes.dart';
 import '../../widgets/common/error_message.dart';
 import '../../widgets/common/navigation_drawer.dart' as nav;
+import '../../widgets/common/notification_icon.dart';
+import '../../widgets/common/settings_dropdown.dart';
+import '../../widgets/common/safe_bottom_padding.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
   const ProviderDashboardScreen({super.key});
@@ -37,10 +40,12 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             onPressed: () => context.push(AppRoutes.tourManagement),
             tooltip: 'Create Tour',
           ),
+          const NotificationIcon(),
+          const SettingsDropdown(),
         ],
       ),
       drawer: nav.NavigationDrawer(
-        currentRoute: AppRoutes.providerDashboard,
+        currentRoute: AppRoutes.dashboard,
       ),
       body: Consumer<TourProvider>(
         builder: (context, tourProvider, child) {
@@ -65,13 +70,13 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 await tourProvider.loadProviderStats();
                 await tourProvider.loadProviderTours();
               },
-              child: SingleChildScrollView(
+              child: SafeScrollView(
                 padding: const EdgeInsets.only(
                   left: 16,
                   right: 16,
                   top: 16,
-                  bottom: 32,
                 ),
+                minBottomPadding: 32,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -229,7 +234,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.3, // Reduced from 1.5 to give more height
       children: [
         _buildStatCard(
           'Active Tours',
@@ -261,29 +266,39 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      elevation: 2,
+      child: Container(
+        padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
+            Icon(icon, size: 28, color: color),
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+            Flexible(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),

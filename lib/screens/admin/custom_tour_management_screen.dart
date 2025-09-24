@@ -68,12 +68,7 @@ class _CustomTourManagementScreenState extends State<CustomTourManagementScreen>
         title: const Text('Custom Tours'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadTours,
-          ),
-        ],
+        actions: [],
       ),
       drawer: nav.NavigationDrawer(
         currentRoute: AppRoutes.customTourManagement,

@@ -52,8 +52,7 @@ class AuthService {
         'email': googleUser.email,
         'first_name': googleUser.displayName?.split(' ').first ?? '',
         'last_name': googleUser.displayName?.split(' ').skip(1).join(' ') ?? '',
-        // Remove profile_picture for now to avoid validation issues
-        // 'profile_picture': googleUser.photoUrl,
+        'picture': googleUser.photoUrl, // Google profile picture
       };
 
       Logger.info('🔄 Sending user data to backend...');
@@ -70,6 +69,12 @@ class AuthService {
         final data = response.data;
         Logger.debug('📋 Auth response data: $data');
         
+        // Ensure data is a Map
+        if (data == null || data is! Map<String, dynamic>) {
+          Logger.error('❌ Invalid response format: expected Map, got ${data.runtimeType}');
+          throw Exception('Invalid authentication response format');
+        }
+        
         // Validate response structure
         if (data['token'] == null) {
           Logger.error('❌ No token in auth response');
@@ -79,6 +84,12 @@ class AuthService {
         if (data['user'] == null) {
           Logger.error('❌ No user data in auth response');
           throw Exception('Authentication response missing user data');
+        }
+        
+        // Ensure user data is a Map
+        if (data['user'] is! Map<String, dynamic>) {
+          Logger.error('❌ Invalid user data format: expected Map, got ${data['user'].runtimeType}');
+          throw Exception('Invalid user data format in response');
         }
         
         await _apiService.setAccessToken(data['token']);
@@ -140,11 +151,46 @@ class AuthService {
 
       final response = await _apiService.get('/auth/profile');
       if (response.statusCode == 200) {
-        return User.fromJson(response.data['data']);
+        final data = response.data;
+        
+        // Handle different response structures
+        if (data is Map<String, dynamic>) {
+          // If response has 'data' key, use it; otherwise use the response directly
+          final userData = data.containsKey('data') ? data['data'] : data;
+          
+          if (userData != null && userData is Map<String, dynamic>) {
+            return User.fromJson(userData);
+          }
+        }
       }
       return null;
     } catch (e) {
+      Logger.error('❌ Error getting current user: $e');
       return null;
+    }
+  }
+
+  Future<User> resetToGoogleProfilePicture(String googlePictureUrl) async {
+    try {
+      Logger.info('🔄 Resetting profile picture to Google picture');
+      
+      final response = await _apiService.put(
+        '/auth/reset-google-picture',
+        data: {
+          'google_picture_url': googlePictureUrl,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        Logger.info('✅ Profile picture reset to Google picture successfully');
+        return User.fromJson(response.data['user']);
+      } else {
+        Logger.error('❌ Failed to reset profile picture: ${response.statusCode}');
+        throw Exception('Failed to reset profile picture to Google picture');
+      }
+    } catch (e) {
+      Logger.error('❌ Error resetting profile picture: $e');
+      rethrow;
     }
   }
 
@@ -173,9 +219,21 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      return User.fromJson(response.data['user']);
+      final data = response.data;
+      
+      if (data == null || data is! Map<String, dynamic>) {
+        throw Exception('Invalid response format from profile update');
+      }
+      
+      final userData = data.containsKey('user') ? data['user'] : data;
+      
+      if (userData == null || userData is! Map<String, dynamic>) {
+        throw Exception('Invalid user data in profile update response');
+      }
+      
+      return User.fromJson(userData);
     }
 
-    throw Exception('Failed to update profile');
+    throw Exception('Failed to update profile: ${response.statusCode}');
   }
 }

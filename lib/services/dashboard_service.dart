@@ -13,7 +13,7 @@ class DashboardService {
       throw Exception('Failed to load dashboard data');
     } catch (e) {
       Logger.warning('⚠️ Dashboard API call failed: $e');
-      // Return mock data for offline testing
+      // Return empty data instead of mock data
       return {
         'total_tours': 0,
         'active_registrations': 0,

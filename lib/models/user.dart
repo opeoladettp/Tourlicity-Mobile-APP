@@ -105,27 +105,25 @@ class User {
   }
 
   bool get isProfileComplete {
+    // Helper function to check if a string field is valid
+    bool isValidString(String? value) {
+      return value != null && value.trim().isNotEmpty;
+    }
+    
     // Basic required fields for all users
-    final hasBasicInfo = firstName != null && 
-                        firstName!.isNotEmpty && 
-                        lastName != null && 
-                        lastName!.isNotEmpty;
+    final hasBasicInfo = isValidString(firstName) && isValidString(lastName);
     
     // For tourists, require additional travel-related information
     if (userType == 'tourist') {
       return hasBasicInfo && 
-             phoneNumber != null && 
-             phoneNumber!.isNotEmpty &&
+             isValidString(phoneNumber) &&
              dateOfBirth != null &&
-             country != null && 
-             country!.isNotEmpty;
+             isValidString(country);
     }
     
     // For provider admins, require basic info and phone
     if (userType == 'provider_admin') {
-      return hasBasicInfo && 
-             phoneNumber != null && 
-             phoneNumber!.isNotEmpty;
+      return hasBasicInfo && isValidString(phoneNumber);
     }
     
     // For system admins, only basic info required
@@ -135,26 +133,31 @@ class User {
   List<String> get missingProfileFields {
     final missing = <String>[];
     
-    if (firstName == null || firstName!.isEmpty) {
+    // Helper function to check if a string field is valid
+    bool isValidString(String? value) {
+      return value != null && value.trim().isNotEmpty;
+    }
+    
+    if (!isValidString(firstName)) {
       missing.add('First Name');
     }
-    if (lastName == null || lastName!.isEmpty) {
+    if (!isValidString(lastName)) {
       missing.add('Last Name');
     }
     
     // Role-specific requirements
     if (userType == 'tourist') {
-      if (phoneNumber == null || phoneNumber!.isEmpty) {
+      if (!isValidString(phoneNumber)) {
         missing.add('Phone Number');
       }
       if (dateOfBirth == null) {
         missing.add('Date of Birth');
       }
-      if (country == null || country!.isEmpty) {
+      if (!isValidString(country)) {
         missing.add('Country');
       }
     } else if (userType == 'provider_admin') {
-      if (phoneNumber == null || phoneNumber!.isEmpty) {
+      if (!isValidString(phoneNumber)) {
         missing.add('Phone Number');
       }
     }

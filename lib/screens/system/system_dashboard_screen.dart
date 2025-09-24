@@ -7,9 +7,9 @@ class SystemDashboardScreen extends StatelessWidget {
   const SystemDashboardScreen({super.key});
 
   void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming soon!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Coming soon!')));
   }
 
   @override
@@ -20,9 +20,7 @@ class SystemDashboardScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
       ),
-      drawer: nav.NavigationDrawer(
-        currentRoute: AppRoutes.systemDashboard,
-      ),
+      drawer: nav.NavigationDrawer(currentRoute: AppRoutes.dashboard),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -108,6 +106,4 @@ class SystemDashboardScreen extends StatelessWidget {
       ),
     );
   }
-
-
 }

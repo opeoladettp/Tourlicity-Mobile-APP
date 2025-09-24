@@ -31,8 +31,12 @@ class TourTemplate {
     return TourTemplate(
       id: json['_id'] ?? '',
       templateName: json['template_name'] ?? '',
-      startDate: DateTime.parse(json['start_date']),
-      endDate: DateTime.parse(json['end_date']),
+      startDate: json['start_date'] != null 
+          ? DateTime.parse(json['start_date']) 
+          : DateTime.now(),
+      endDate: json['end_date'] != null 
+          ? DateTime.parse(json['end_date']) 
+          : DateTime.now().add(Duration(days: 1)),
       description: json['description'] ?? '',
       durationDays: json['duration_days'] ?? 0,
       featuresImage: json['features_image'],
@@ -41,7 +45,9 @@ class TourTemplate {
           .map((link) => WebLink.fromJson(link))
           .toList(),
       isActive: json['is_active'] ?? false,
-      createdDate: DateTime.parse(json['created_date']),
+      createdDate: json['created_date'] != null 
+          ? DateTime.parse(json['created_date']) 
+          : DateTime.now(),
       updatedDate: json['updated_date'] != null 
           ? DateTime.parse(json['updated_date']) 
           : null,

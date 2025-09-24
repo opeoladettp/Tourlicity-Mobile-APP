@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
+import 'safe_bottom_padding.dart';
 
 class NavigationDrawer extends StatelessWidget {
   final String currentRoute;
@@ -63,26 +64,10 @@ class NavigationDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.dashboard,
-                  title: 'Tourist Dashboard',
-                  route: AppRoutes.touristDashboard,
+                  title: 'Dashboard',
+                  route: AppRoutes.dashboard,
                   color: Colors.blue,
                 ),
-                if (user?.userType == 'provider_admin' || user?.userType == 'system_admin')
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.business_center,
-                    title: 'Provider Dashboard',
-                    route: AppRoutes.providerDashboard,
-                    color: Colors.green,
-                  ),
-                if (user?.userType == 'system_admin')
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.admin_panel_settings,
-                    title: 'System Dashboard',
-                    route: AppRoutes.systemDashboard,
-                    color: Colors.purple,
-                  ),
                 
                 const Divider(),
                 
@@ -102,11 +87,25 @@ class NavigationDrawer extends StatelessWidget {
                   route: AppRoutes.myTours,
                   color: Colors.green,
                 ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.description_outlined,
+                  title: 'Browse Templates',
+                  route: AppRoutes.tourTemplateBrowse,
+                  color: Colors.purple,
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.qr_code_scanner,
+                  title: 'Scan QR Code',
+                  route: AppRoutes.qrScanner,
+                  color: Colors.orange,
+                ),
                 if (onJoinTour != null)
                   _buildDrawerAction(
                     context,
-                    icon: Icons.qr_code_scanner,
-                    title: 'Join Tour',
+                    icon: Icons.input,
+                    title: 'Enter Join Code',
                     onTap: onJoinTour!,
                     color: Colors.orange,
                   ),
@@ -114,15 +113,18 @@ class NavigationDrawer extends StatelessWidget {
                 const Divider(),
                 
                 // Provider Section
-                _buildSectionHeader('Provider Services'),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.business,
-                  title: 'Become a Provider',
-                  route: AppRoutes.providerRegistration,
-                  color: const Color(0xFF6366F1),
-                ),
-                if (user?.userType == 'provider_admin')
+                if (user?.userType == 'tourist') ...[
+                  _buildSectionHeader('Provider Services'),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.business,
+                    title: 'Become a Provider',
+                    route: AppRoutes.providerRegistration,
+                    color: const Color(0xFF6366F1),
+                  ),
+                ],
+                if (user?.userType == 'provider_admin') ...[
+                  _buildSectionHeader('Provider Services'),
                   _buildDrawerItem(
                     context,
                     icon: Icons.tour,
@@ -130,19 +132,13 @@ class NavigationDrawer extends StatelessWidget {
                     route: AppRoutes.tourManagement,
                     color: Colors.indigo,
                   ),
+                ],
                 
                 const Divider(),
                 
                 // System Admin Section
                 if (user?.userType == 'system_admin') ...[
                   _buildSectionHeader('System Admin'),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.admin_panel_settings,
-                    title: 'Admin Dashboard',
-                    route: AppRoutes.systemAdminDashboard,
-                    color: Colors.purple,
-                  ),
                   _buildDrawerItem(
                     context,
                     icon: Icons.pending_actions,
@@ -171,36 +167,40 @@ class NavigationDrawer extends StatelessWidget {
                     route: AppRoutes.tourTemplateManagement,
                     color: Colors.indigo,
                   ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.notifications_active,
+                    title: 'Create Notification',
+                    route: AppRoutes.notificationManagement,
+                    color: Colors.red,
+                  ),
                   const Divider(),
                 ],
-                
-                // Account Section
-                _buildSectionHeader('Account'),
-                _buildDrawerAction(
-                  context,
-                  icon: Icons.person,
-                  title: 'Profile',
-                  onTap: () => _showProfileDialog(context),
-                  color: Colors.blue,
-                ),
               ],
             ),
           ),
           
-          // Footer
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Sign Out',
-              style: TextStyle(color: Colors.red),
+          // Footer with safe bottom padding
+          SafeBottomPadding(
+            minPadding: 0,
+            child: Column(
+              children: [
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Sign Out',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    authProvider.signOut();
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            onTap: () {
-              Navigator.of(context).pop();
-              authProvider.signOut();
-            },
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -269,57 +269,5 @@ class NavigationDrawer extends StatelessWidget {
     );
   }
 
-  void _showProfileDialog(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.user;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Profile'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: const Color(0xFF6366F1),
-              backgroundImage: user?.profilePicture != null 
-                  ? NetworkImage(user!.profilePicture!) 
-                  : null,
-              child: user?.profilePicture == null 
-                  ? Text(
-                      user?.name?.substring(0, 1).toUpperCase() ?? 'T',
-                      style: const TextStyle(color: Colors.white, fontSize: 32),
-                    )
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              user?.name ?? 'Tourist',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              user?.email ?? 'No email',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            Chip(
-              label: Text(
-                (user?.userType ?? 'tourist').replaceAll('_', ' ').toUpperCase(),
-                style: const TextStyle(fontSize: 12),
-              ),
-              backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.1),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 }

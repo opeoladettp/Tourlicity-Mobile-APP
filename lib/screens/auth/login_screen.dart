@@ -30,7 +30,7 @@ class LoginScreen extends StatelessWidget {
                         // Logo and Title
                         ClipOval(
                           child: Image.asset(
-                            'assets/images/logo.png',
+                            'assets/images/logo_white.png',
                             height: 80,
                             width: 80,
                             fit: BoxFit.cover,

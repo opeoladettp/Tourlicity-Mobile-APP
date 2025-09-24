@@ -7,6 +7,9 @@ import '../../models/tour.dart';
 import '../../services/dashboard_data_service.dart';
 import '../../utils/logger.dart';
 import '../../widgets/common/navigation_drawer.dart' as nav;
+import '../../widgets/common/notification_icon.dart';
+import '../../widgets/common/settings_dropdown.dart';
+import '../../widgets/common/safe_bottom_padding.dart';
 
 class TouristDashboardScreen extends StatefulWidget {
   const TouristDashboardScreen({super.key});
@@ -65,9 +68,13 @@ class _TouristDashboardScreenState extends State<TouristDashboardScreen> {
         title: const Text('Tourlicity'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
+        actions: const [
+          NotificationIcon(),
+          SettingsDropdown(),
+        ],
       ),
       drawer: nav.NavigationDrawer(
-        currentRoute: AppRoutes.touristDashboard,
+        currentRoute: AppRoutes.dashboard,
         onJoinTour: _showJoinTourDialog,
       ),
       body: SafeArea(
@@ -76,133 +83,133 @@ class _TouristDashboardScreenState extends State<TouristDashboardScreen> {
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: _loadTouristData,
-                child: SingleChildScrollView(
+                child: SafeScrollView(
                   padding: const EdgeInsets.only(
                     left: 16,
                     right: 16,
                     top: 16,
-                    bottom: 80, // Extra padding for floating action button
                   ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome Section
-                    Card(
-                      color: const Color.fromRGBO(99, 102, 241, 0.1),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: const Color(0xFF6366F1),
-                              backgroundImage: user?.profilePicture != null
-                                  ? NetworkImage(user!.profilePicture!)
-                                  : null,
-                              child: user?.profilePicture == null
-                                  ? Text(
-                                      user?.name
-                                              ?.substring(0, 1)
-                                              .toUpperCase() ??
-                                          'T',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Welcome back, ${user?.name?.split(' ').first ?? 'Tourist'}!',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Ready for your next adventure?',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
+                  minBottomPadding: 80, // Extra padding for floating action button
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Welcome Section
+                      Card(
+                        color: const Color.fromRGBO(99, 102, 241, 0.1),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 30,
+                                backgroundColor: const Color(0xFF6366F1),
+                                backgroundImage: user?.profilePicture != null
+                                    ? NetworkImage(user!.profilePicture!)
+                                    : null,
+                                child: user?.profilePicture == null
+                                    ? Text(
+                                        user?.name
+                                                ?.substring(0, 1)
+                                                .toUpperCase() ??
+                                            'T',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                        ),
+                                      )
+                                    : null,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Quick Stats
-                    const Text(
-                      'Your Journey',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatsGrid(),
-
-                    const SizedBox(height: 32),
-
-                    // Quick Actions
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildQuickActions(),
-
-                    const SizedBox(height: 32),
-
-                    // Upcoming Tours
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Upcoming Tours',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Welcome back, ${user?.name?.split(' ').first ?? 'Tourist'}!',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Ready for your next adventure?',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        TextButton(
-                          onPressed: () => context.push(AppRoutes.myTours),
-                          child: const Text('View All'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildUpcomingTours(),
-
-                    const SizedBox(height: 32),
-
-                    // Recommended Tours
-                    const Text(
-                      'Recommended for You',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildRecommendedTours(),
-                  ],
+
+                      const SizedBox(height: 24),
+
+                      // Quick Stats
+                      const Text(
+                        'Your Journey',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStatsGrid(),
+
+                      const SizedBox(height: 32),
+
+                      // Quick Actions
+                      const Text(
+                        'Quick Actions',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildQuickActions(),
+
+                      const SizedBox(height: 32),
+
+                      // Upcoming Tours
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Upcoming Tours',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.push(AppRoutes.myTours),
+                            child: const Text('View All'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildUpcomingTours(),
+
+                      const SizedBox(height: 32),
+
+                      // Recommended Tours
+                      const Text(
+                        'Recommended for You',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildRecommendedTours(),
+                    ],
+                  ),
                 ),
               ),
-            ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showJoinTourDialog(),
@@ -634,10 +641,24 @@ class _TouristDashboardScreenState extends State<TouristDashboardScreen> {
       return;
     }
 
-    // Mock join tour functionality
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Joining tour with code: $code')));
+    // Search for tour by join code and navigate to registration
+    try {
+      // This would call the API to search for the tour
+      // For now, show a message that the functionality is being implemented
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(
+        content: Text('Tour search functionality will be implemented with backend integration'),
+        backgroundColor: Colors.orange,
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(
+        content: Text('Error searching for tour: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   void _showTourDetails(Tour tour) {

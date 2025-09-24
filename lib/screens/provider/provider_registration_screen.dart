@@ -76,9 +76,9 @@ class _ProviderRegistrationScreenState
       final user = authProvider.user;
       
       if (user?.userType == 'provider_admin') {
-        // User is already a provider, redirect to provider dashboard
+        // User is already a provider, redirect to dashboard
         if (mounted) {
-          context.go(AppRoutes.providerDashboard);
+          context.go(AppRoutes.dashboard);
         }
         return;
       }
@@ -594,8 +594,8 @@ Widget _buildApplicationStatus() {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _refreshStatus,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh Status'),
+              icon: const Icon(Icons.sync),
+              label: const Text('Check Status'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
                 foregroundColor: Colors.white,
@@ -720,6 +720,8 @@ Widget _buildApplicationStatus() {
   }
 
   void _showCancelConfirmation(String applicationId) {
+    if (!mounted) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -730,13 +732,19 @@ Widget _buildApplicationStatus() {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
+            },
             child: const Text('Keep Application'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              _cancelApplication(applicationId);
+              if (mounted) {
+                Navigator.of(context).pop();
+                _cancelApplication(applicationId);
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Cancel Application'),
@@ -854,6 +862,8 @@ Widget _buildApplicationStatus() {
   }
 
   void _showSuccessDialog() {
+    if (!mounted) return;
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -876,8 +886,10 @@ Widget _buildApplicationStatus() {
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              // Stay on this page to show application status
+              if (mounted) {
+                Navigator.of(context).pop(); // Close dialog
+                // Stay on this page to show application status
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),

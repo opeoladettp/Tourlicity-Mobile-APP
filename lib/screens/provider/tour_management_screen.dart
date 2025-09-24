@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/tour_provider.dart';
 import '../../widgets/common/loading_overlay.dart';
+import '../../widgets/common/app_bar_actions.dart';
+import '../../services/tour_template_service.dart';
+import '../../models/tour_template.dart';
 
 class TourManagementScreen extends StatefulWidget {
   const TourManagementScreen({super.key});
@@ -16,9 +19,20 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _maxTouristsController = TextEditingController(text: '15');
+  final TourTemplateService _tourTemplateService = TourTemplateService();
+  
   DateTime? _startDate;
   DateTime? _endDate;
   String _status = 'draft';
+  TourTemplate? _selectedTemplate;
+  List<TourTemplate> _availableTemplates = [];
+  bool _isLoadingTemplates = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableTemplates();
+  }
 
   @override
   void dispose() {
@@ -26,6 +40,37 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
     _descriptionController.dispose();
     _maxTouristsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAvailableTemplates() async {
+    setState(() {
+      _isLoadingTemplates = true;
+    });
+
+    try {
+      final templates = await _tourTemplateService.getActiveTourTemplates();
+      print('DEBUG: Loaded ${templates.length} active tour templates');
+      for (var template in templates) {
+        print('DEBUG: Template - ${template.templateName} (Active: ${template.isActive})');
+      }
+      setState(() {
+        _availableTemplates = templates;
+      });
+    } catch (e) {
+      print('DEBUG: Error loading templates: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load tour templates: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoadingTemplates = false;
+      });
+    }
   }
 
   @override
@@ -40,6 +85,7 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
             onPressed: _saveTour,
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
+          const BothActions(),
         ],
       ),
       body: Consumer<TourProvider>(
@@ -66,6 +112,41 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    // Tour Template Selection
+                    _isLoadingTemplates
+                        ? const Center(child: CircularProgressIndicator())
+                        : DropdownButtonFormField<TourTemplate>(
+                            value: _selectedTemplate,
+                            decoration: const InputDecoration(
+                              labelText: 'Tour Template (Optional)',
+                              border: OutlineInputBorder(),
+                              helperText: 'Select a template to pre-fill tour details',
+                            ),
+                            items: [
+                              const DropdownMenuItem<TourTemplate>(
+                                value: null,
+                                child: Text('No Template - Create Custom Tour'),
+                              ),
+                              ..._availableTemplates.map((template) =>
+                                DropdownMenuItem<TourTemplate>(
+                                  value: template,
+                                  child: Text(template.templateName),
+                                ),
+                              ),
+                            ],
+                            onChanged: (template) {
+                              setState(() {
+                                _selectedTemplate = template;
+                                if (template != null) {
+                                  _nameController.text = template.templateName;
+                                  _descriptionController.text = template.description;
+                                  _startDate = template.startDate;
+                                  _endDate = template.endDate;
+                                }
+                              });
+                            },
+                          ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _descriptionController,

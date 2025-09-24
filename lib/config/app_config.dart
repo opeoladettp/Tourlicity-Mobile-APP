@@ -1,12 +1,12 @@
 class AppConfig {
   // API Configuration
   static const String apiBaseUrl =
-      'http://192.168.1.2:5000'; // Your computer's IP address
+      'http://192.168.1.2:5000'; // Your computer's Wi-Fi IP address
   // Alternative: 'http://10.0.2.2:5000' (Android emulator localhost)
   // Use 'http://localhost:5000' for iOS simulator or web
   static const Duration apiTimeout = Duration(
-    seconds: 30,
-  ); // Increased for real backend
+    seconds: 60,
+  ); // Increased timeout for network issues
 
   // App Information
   static const String appName = 'Tourlicity';

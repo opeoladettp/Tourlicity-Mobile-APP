@@ -98,12 +98,38 @@ class TourService {
 
   // Provider Admin functions
   Future<List<Tour>> getProviderTours() async {
-    final response = await _apiService.get('/custom-tours');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = response.data['data'] ?? response.data;
-      return data.map((json) => Tour.fromJson(json)).toList();
+    try {
+      final response = await _apiService.get('/custom-tours');
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        
+        if (responseData is Map<String, dynamic>) {
+          // Try to get data from 'data' key first, then fallback to direct response
+          final toursData = responseData.containsKey('data') ? responseData['data'] : responseData;
+          
+          if (toursData is List) {
+            return toursData.map((json) => Tour.fromJson(json)).toList();
+          } else if (toursData is Map<String, dynamic> && toursData.containsKey('tours')) {
+            // Handle case where tours are nested under 'tours' key
+            final toursList = toursData['tours'];
+            if (toursList is List) {
+              return toursList.map((json) => Tour.fromJson(json)).toList();
+            }
+          }
+        } else if (responseData is List) {
+          // Handle direct list response
+          return responseData.map((json) => Tour.fromJson(json)).toList();
+        }
+        
+        Logger.warning('⚠️ Unexpected tours response structure, returning empty list');
+        return [];
+      }
+      throw Exception('Failed to load provider tours: ${response.statusCode}');
+    } catch (e) {
+      Logger.error('❌ Error loading provider tours: $e');
+      // Return empty list instead of throwing to prevent UI crashes
+      return [];
     }
-    throw Exception('Failed to load provider tours');
   }
 
   Future<Tour> createTour({
@@ -190,10 +216,30 @@ class TourService {
   }
 
   Future<Map<String, dynamic>> getProviderStats() async {
-    final response = await _apiService.get('/registrations/stats');
-    if (response.statusCode == 200) {
-      return response.data['data'];
+    try {
+      final response = await _apiService.get('/registrations/stats');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        
+        // Handle different response structures
+        if (data is Map<String, dynamic>) {
+          // If response has 'data' key, use it; otherwise use the response directly
+          final statsData = data.containsKey('data') ? data['data'] : data;
+          
+          if (statsData != null && statsData is Map<String, dynamic>) {
+            return statsData;
+          }
+        }
+        
+        // Return empty stats if data structure is unexpected
+        Logger.warning('⚠️ Unexpected stats response structure, returning empty stats');
+        return {};
+      }
+      throw Exception('Failed to load provider stats: ${response.statusCode}');
+    } catch (e) {
+      Logger.error('❌ Error loading provider stats: $e');
+      // Return empty stats instead of throwing to prevent UI crashes
+      return {};
     }
-    throw Exception('Failed to load provider stats');
   }
 }
