@@ -4,7 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/common/loading_overlay.dart';
 import '../../widgets/common/image_picker_widget.dart';
-import '../../widgets/common/safe_bottom_padding.dart';
+
 import '../../utils/logger.dart';
 
 class ProfileUpdateScreen extends StatefulWidget {
@@ -50,7 +50,8 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
       _passportController.text = user.passportNumber ?? '';
       _selectedDateOfBirth = user.dateOfBirth;
       _selectedCountry = user.country;
-      _selectedGender = user.gender;
+      // Normalize gender case to match dropdown options
+      _selectedGender = _normalizeGender(user.gender);
       _profilePictureUrl = user.profilePicture;
 
       Logger.info('📋 Profile update initialized with existing data');
@@ -68,6 +69,42 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
       setState(() {
         _hasChanges = true;
       });
+    }
+  }
+
+  /// Normalize gender value to match dropdown options
+  String? _normalizeGender(String? gender) {
+    if (gender == null) return null;
+    
+    switch (gender.toLowerCase()) {
+      case 'male':
+        return 'Male';
+      case 'female':
+        return 'Female';
+      case 'non-binary':
+        return 'Non-binary';
+      case 'prefer not to say':
+        return 'Prefer not to say';
+      default:
+        return null; // Return null if no match, will show as unselected
+    }
+  }
+
+  /// Convert display gender back to database format (lowercase)
+  String? _genderForDatabase(String? displayGender) {
+    if (displayGender == null) return null;
+    
+    switch (displayGender) {
+      case 'Male':
+        return 'male';
+      case 'Female':
+        return 'female';
+      case 'Non-binary':
+        return 'non-binary';
+      case 'Prefer not to say':
+        return 'prefer not to say';
+      default:
+        return displayGender.toLowerCase();
     }
   }
 
@@ -104,7 +141,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
       ),
       body: LoadingOverlay(
         isLoading: _isLoading,
-        child: SafeScrollView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
@@ -120,6 +157,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
                 _buildPersonalInfoSection(),
                 const SizedBox(height: 32),
                 _buildSaveButton(),
+                const SizedBox(height: 32), // Bottom padding
               ],
             ),
           ),
@@ -149,6 +187,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
                     _hasChanges = true;
                   });
                 },
+                imageType: 'profile',
                 label: null,
                 hint: 'Select or capture a profile picture',
                 previewSize: 120,
@@ -295,7 +334,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
             const SizedBox(height: 16),
             // Country
             DropdownButtonFormField<String>(
-              value: _selectedCountry,
+              initialValue: _selectedCountry,
               decoration: const InputDecoration(
                 labelText: 'Country',
                 border: OutlineInputBorder(),
@@ -314,7 +353,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
             const SizedBox(height: 16),
             // Gender
             DropdownButtonFormField<String>(
-              value: _selectedGender,
+              initialValue: _selectedGender,
               decoration: const InputDecoration(
                 labelText: 'Gender',
                 border: OutlineInputBorder(),
@@ -406,7 +445,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
             : null,
         'dateOfBirth': _selectedDateOfBirth?.toIso8601String(),
         'country': _selectedCountry,
-        'gender': _selectedGender,
+        'gender': _genderForDatabase(_selectedGender),
         'profilePicture': _profilePictureUrl?.isNotEmpty == true
             ? _profilePictureUrl
             : null,
@@ -426,7 +465,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen> {
             : null,
         dateOfBirth: _selectedDateOfBirth,
         country: _selectedCountry,
-        gender: _selectedGender,
+        gender: _genderForDatabase(_selectedGender),
         profilePicture: _profilePictureUrl?.isNotEmpty == true
             ? _profilePictureUrl
             : null,

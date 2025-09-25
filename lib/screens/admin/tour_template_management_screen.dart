@@ -6,7 +6,9 @@ import '../../utils/logger.dart';
 import '../../config/routes.dart';
 import '../../widgets/common/navigation_drawer.dart' as nav;
 import '../../widgets/common/app_bar_actions.dart';
-import '../../widgets/common/safe_bottom_padding.dart';
+
+import '../../widgets/common/image_picker_widget.dart';
+import '../../widgets/common/multiple_image_picker_widget.dart';
 
 class TourTemplateManagementScreen extends StatefulWidget {
   const TourTemplateManagementScreen({super.key});
@@ -174,7 +176,7 @@ class _TourTemplateManagementScreenState
       );
     }
 
-    return SafeListView(
+    return ListView(
       padding: const EdgeInsets.all(16),
       children: _templates.map((template) => _buildTemplateCard(template)).toList(),
     );
@@ -332,14 +334,12 @@ class _TourTemplateManagementScreenState
     final descriptionController = TextEditingController(
       text: template?.description ?? '',
     );
-    final featuredImageController = TextEditingController(
-      text: template?.featuresImage ?? '',
-    );
     
     DateTime startDate = template?.startDate ?? DateTime.now();
     DateTime endDate =
         template?.endDate ?? DateTime.now().add(const Duration(days: 7));
     
+    String? featuresImageUrl = template?.featuresImage;
     List<String> teaserImages = List.from(template?.teaserImages ?? []);
     List<WebLink> webLinks = List.from(template?.webLinks ?? []);
 
@@ -436,76 +436,34 @@ class _TourTemplateManagementScreenState
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: featuredImageController,
-                    decoration: const InputDecoration(
-                      labelText: 'Featured Image URL',
-                      border: OutlineInputBorder(),
-                      hintText: 'https://example.com/featured-image.jpg',
-                      prefixIcon: Icon(Icons.image),
-                    ),
+                  
+                  // Featured Image Picker
+                  ImagePickerWidget(
+                    initialImageUrl: featuresImageUrl,
+                    onImageSelected: (url) {
+                      setState(() {
+                        featuresImageUrl = url;
+                      });
+                    },
+                    imageType: 'features',
+                    label: 'Featured Image',
+                    isRequired: false,
+                    height: 150,
                   ),
                   const SizedBox(height: 16),
                   
                   // Teaser Images
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Teaser Images',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          _showAddTeaserImageDialog(context, (imageUrl) {
-                            setState(() {
-                              teaserImages.add(imageUrl);
-                            });
-                          });
-                        },
-                        icon: const Icon(Icons.add),
-                        tooltip: 'Add Teaser Image',
-                      ),
-                    ],
+                  MultipleImagePickerWidget(
+                    initialImageUrls: teaserImages,
+                    onImagesChanged: (urls) {
+                      setState(() {
+                        teaserImages = urls;
+                      });
+                    },
+                    imageType: 'teaser',
+                    label: 'Teaser Images',
+                    maxImages: 5,
                   ),
-                  const SizedBox(height: 8),
-                  if (teaserImages.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'No teaser images added',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    )
-                  else
-                    ...teaserImages.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final imageUrl = entry.value;
-                      return Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.image),
-                          title: Text(
-                            imageUrl.length > 40 
-                                ? '${imageUrl.substring(0, 40)}...' 
-                                : imageUrl,
-                          ),
-                          trailing: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                teaserImages.removeAt(index);
-                              });
-                            },
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                          ),
-                        ),
-                      );
-                    }),
                   
                   const SizedBox(height: 24),
                   
@@ -580,9 +538,12 @@ class _TourTemplateManagementScreenState
             ),
             ElevatedButton(
               onPressed: () async {
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                
                 if (nameController.text.trim().isEmpty ||
                     descriptionController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Please fill all required fields'),
                       backgroundColor: Colors.red,
@@ -597,9 +558,9 @@ class _TourTemplateManagementScreenState
                     'start_date': startDate.toIso8601String().split('T')[0],
                     'end_date': endDate.toIso8601String().split('T')[0],
                     'description': descriptionController.text.trim(),
-                    'features_image': featuredImageController.text.trim().isEmpty 
-                        ? null 
-                        : featuredImageController.text.trim(),
+                    'features_image': featuresImageUrl?.isNotEmpty == true 
+                        ? featuresImageUrl 
+                        : null,
                     'teaser_images': teaserImages,
                     'web_links': webLinks.map((link) => link.toJson()).toList(),
                   };
@@ -611,8 +572,8 @@ class _TourTemplateManagementScreenState
                   }
 
                   if (mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    navigator.pop();
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           template == null
@@ -626,7 +587,7 @@ class _TourTemplateManagementScreenState
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Error: ${e.toString()}'),
                         backgroundColor: Colors.red,
@@ -727,45 +688,7 @@ class _TourTemplateManagementScreenState
     context.push('${AppRoutes.tourTemplateActivities}/${template.id}');
   }
 
-  void _showAddTeaserImageDialog(BuildContext context, Function(String) onAdd) {
-    final imageUrlController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Teaser Image'),
-        content: TextField(
-          controller: imageUrlController,
-          decoration: const InputDecoration(
-            labelText: 'Image URL',
-            border: OutlineInputBorder(),
-            hintText: 'https://example.com/teaser-image.jpg',
-            prefixIcon: Icon(Icons.image),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final imageUrl = imageUrlController.text.trim();
-              if (imageUrl.isNotEmpty) {
-                onAdd(imageUrl);
-                Navigator.of(context).pop();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showAddWebLinkDialog(BuildContext context, Function(WebLink) onAdd) {
     final urlController = TextEditingController();

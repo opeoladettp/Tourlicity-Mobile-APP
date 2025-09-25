@@ -10,6 +10,12 @@ class AuthService {
     scopes: AppConfig.googleSignInScopes,
     // Use configuration from google-services.json only
   );
+  
+  // Cache to prevent duplicate profile requests
+  static User? _cachedUser;
+  static DateTime? _lastProfileFetch;
+  static const Duration _profileCacheTimeout = Duration(minutes: 2);
+  static Future<User?>? _ongoingProfileRequest;
 
   Future<User?> signInWithGoogle() async {
     try {
@@ -146,28 +152,75 @@ class AuthService {
     try {
       final token = await _apiService.getAccessToken();
       if (token == null) {
+        Logger.warning('⚠️ No access token found');
         return null;
       }
 
-      final response = await _apiService.get('/auth/profile');
-      if (response.statusCode == 200) {
-        final data = response.data;
-        
-        // Handle different response structures
-        if (data is Map<String, dynamic>) {
-          // If response has 'data' key, use it; otherwise use the response directly
-          final userData = data.containsKey('data') ? data['data'] : data;
-          
-          if (userData != null && userData is Map<String, dynamic>) {
-            return User.fromJson(userData);
-          }
-        }
+      // Return cached user if still valid
+      if (_cachedUser != null && 
+          _lastProfileFetch != null && 
+          DateTime.now().difference(_lastProfileFetch!) < _profileCacheTimeout) {
+        Logger.info('📋 Returning cached user profile: ${_cachedUser!.email}');
+        return _cachedUser;
       }
-      return null;
+      
+      // If there's already an ongoing request, wait for it
+      if (_ongoingProfileRequest != null) {
+        Logger.info('⏳ Waiting for ongoing profile request...');
+        return await _ongoingProfileRequest!;
+      }
+      
+      // Start new request
+      _ongoingProfileRequest = _fetchUserProfile();
+      
+      try {
+        final result = await _ongoingProfileRequest!;
+        _cachedUser = result;
+        _lastProfileFetch = DateTime.now();
+        return result;
+      } finally {
+        _ongoingProfileRequest = null;
+      }
     } catch (e) {
       Logger.error('❌ Error getting current user: $e');
       return null;
     }
+  }
+
+  /// Internal method to fetch user profile
+  Future<User?> _fetchUserProfile() async {
+    Logger.info('🔍 Fetching current user profile from /auth/profile');
+    final response = await _apiService.get('/auth/profile');
+    Logger.info('📡 Profile response status: ${response.statusCode}');
+    Logger.info('📋 Profile response data: ${response.data}');
+    
+    if (response.statusCode == 200) {
+      final data = response.data;
+      Logger.info('📄 Raw profile data type: ${data.runtimeType}');
+      Logger.info('📄 Raw profile data: $data');
+      
+      // Handle different response structures
+      if (data is Map<String, dynamic>) {
+        // Check for 'user' key first (standard response), then 'data' key, then use response directly
+        final userData = data.containsKey('user') ? data['user'] : 
+                        data.containsKey('data') ? data['data'] : data;
+        Logger.info('👤 User data to parse: $userData');
+        
+        if (userData != null && userData is Map<String, dynamic>) {
+          final user = User.fromJson(userData);
+          Logger.info('✅ Successfully parsed user: ${user.email}');
+          Logger.info('👤 User details - First: ${user.firstName}, Last: ${user.lastName}, Phone: ${user.phoneNumber}');
+          return user;
+        } else {
+          Logger.error('❌ User data is null or not a Map');
+        }
+      } else {
+        Logger.error('❌ Response data is not a Map: ${data.runtimeType}');
+      }
+    } else {
+      Logger.error('❌ Profile request failed with status: ${response.statusCode}');
+    }
+    return null;
   }
 
   Future<User> resetToGoogleProfilePicture(String googlePictureUrl) async {
@@ -235,5 +288,17 @@ class AuthService {
     }
 
     throw Exception('Failed to update profile: ${response.statusCode}');
+  }
+  
+  /// Clear cached user data (call when user data is updated)
+  static void clearUserCache() {
+    _cachedUser = null;
+    _lastProfileFetch = null;
+    _ongoingProfileRequest = null;
+  }
+  
+  /// Instance method to clear user cache
+  void clearCache() {
+    clearUserCache();
   }
 }

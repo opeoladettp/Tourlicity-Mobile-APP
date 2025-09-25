@@ -95,9 +95,45 @@ class NotificationDisplay extends StatelessWidget {
     Color color;
 
     switch (type) {
+      case 'broadcast':
+        iconData = Icons.campaign;
+        color = Colors.indigo;
+        break;
+      case 'tour_approved':
+        iconData = Icons.check_circle;
+        color = Colors.green;
+        break;
+      case 'tour_rejected':
+        iconData = Icons.cancel;
+        color = Colors.red;
+        break;
+      case 'tour_pending':
+        iconData = Icons.pending;
+        color = Colors.orange;
+        break;
+      case 'role_approved':
+        iconData = Icons.verified_user;
+        color = Colors.green;
+        break;
+      case 'role_rejected':
+        iconData = Icons.person_remove;
+        color = Colors.red;
+        break;
+      case 'role_pending':
+        iconData = Icons.person_add;
+        color = Colors.orange;
+        break;
       case 'system_announcement':
         iconData = Icons.campaign;
         color = Colors.blue;
+        break;
+      case 'system_welcome':
+        iconData = Icons.waving_hand;
+        color = Colors.purple;
+        break;
+      case 'feature_announcement':
+        iconData = Icons.new_releases;
+        color = Colors.teal;
         break;
       case 'tour_update':
         iconData = Icons.tour;
@@ -125,7 +161,7 @@ class NotificationDisplay extends StatelessWidget {
     }
 
     return CircleAvatar(
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       child: Icon(iconData, color: color, size: 20),
     );
   }

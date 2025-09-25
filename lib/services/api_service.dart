@@ -32,6 +32,11 @@ class ApiService {
         }
         handler.next(options);
       },
+      onResponse: (response, handler) {
+        Logger.debug('📥 API Response: ${response.statusCode} ${response.requestOptions.path}');
+        Logger.debug('📋 Response data: ${response.data}');
+        handler.next(response);
+      },
       onError: (error, handler) {
         Logger.error('🚨 API Error: ${error.response?.statusCode} ${error.message}');
         

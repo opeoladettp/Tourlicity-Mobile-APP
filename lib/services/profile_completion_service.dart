@@ -7,7 +7,21 @@ class ProfileCompletionService {
 
   /// Check if user needs to complete their profile
   bool requiresProfileCompletion(User user) {
-    return !user.isProfileComplete;
+    Logger.info('🔍 Checking profile completion for user: ${user.email}');
+    Logger.info('📋 Profile completion initialized:');
+    Logger.info('  - First Name: "${user.firstName}"');
+    Logger.info('  - Last Name: "${user.lastName}"');
+    Logger.info('  - Phone: "${user.phoneNumber}"');
+    Logger.info('  - Date of Birth: ${user.dateOfBirth}');
+    Logger.info('  - Country: "${user.country}"');
+    Logger.info('  - User Type: ${user.userType}');
+    Logger.info('  - Is Profile Complete: ${user.isProfileComplete}');
+    Logger.info('  - Missing Fields: ${user.missingProfileFields}');
+    
+    final needsCompletion = !user.isProfileComplete;
+    Logger.info('  - Requires Completion: $needsCompletion');
+    
+    return needsCompletion;
   }
 
   /// Get the next required step for profile completion

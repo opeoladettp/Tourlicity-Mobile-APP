@@ -132,7 +132,7 @@ class _CustomTourManagementScreenState extends State<CustomTourManagementScreen>
                             });
                             _loadTours();
                           },
-                          selectedColor: const Color(0xFF6366F1).withOpacity(0.2),
+                          selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
                           checkmarkColor: const Color(0xFF6366F1),
                         ),
                       );
@@ -345,7 +345,7 @@ class _CustomTourManagementScreenState extends State<CustomTourManagementScreen>
                 Text('Current status: ${tour.statusDisplayName}'),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedStatus,
+                  initialValue: selectedStatus,
                   decoration: const InputDecoration(
                     labelText: 'New Status',
                     border: OutlineInputBorder(),
@@ -371,11 +371,14 @@ class _CustomTourManagementScreenState extends State<CustomTourManagementScreen>
               ),
               ElevatedButton(
                 onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+                  
                   try {
                     await _customTourService.updateTourStatus(tour.id, selectedStatus);
                     if (mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      navigator.pop();
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Tour status updated successfully'),
                           backgroundColor: Colors.green,
@@ -385,7 +388,7 @@ class _CustomTourManagementScreenState extends State<CustomTourManagementScreen>
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text('Error: ${e.toString()}'),
                           backgroundColor: Colors.red,

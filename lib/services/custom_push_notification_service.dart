@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../utils/logger.dart';
-import '../services/notification_service.dart';
-import '../models/notification.dart';
 import '../config/app_config.dart';
 
 class CustomPushNotificationService {
@@ -12,7 +9,6 @@ class CustomPushNotificationService {
   factory CustomPushNotificationService() => _instance;
   CustomPushNotificationService._internal();
 
-  final NotificationService _notificationService = NotificationService();
   
   WebSocketChannel? _webSocketChannel;
   Timer? _heartbeatTimer;
@@ -133,26 +129,7 @@ class CustomPushNotificationService {
 
 
 
-  /// Navigate based on notification type
-  void _navigateBasedOnType(String type, Map<String, dynamic> data) {
-    // Navigation logic based on notification type
-    switch (type) {
-      case 'tour_update':
-        Logger.info('🚌 Navigate to tour details: ${data['tour_id']}');
-        break;
-      case 'registration_approved':
-        Logger.info('✅ Navigate to my tours');
-        break;
-      case 'tour_reminder':
-        Logger.info('⏰ Navigate to tour details: ${data['tour_id']}');
-        break;
-      case 'system_announcement':
-        Logger.info('📢 Show system announcement');
-        break;
-      default:
-        Logger.info('📱 Unknown notification type: $type');
-    }
-  }
+
 
   /// Send test notification
   Future<void> sendTestNotification() async {

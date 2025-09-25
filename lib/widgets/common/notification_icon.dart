@@ -17,7 +17,6 @@ class _NotificationIconState extends State<NotificationIcon> {
   final UserNotificationService _notificationService = UserNotificationService();
   
   List<AppNotification> _notifications = [];
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -26,13 +25,14 @@ class _NotificationIconState extends State<NotificationIcon> {
   }
 
   Future<void> _loadNotifications() async {
-    setState(() => _isLoading = true);
     
     try {
       final notifications = await _notificationService.getUserNotifications();
-      setState(() {
-        _notifications = notifications;
-      });
+      if (mounted) {
+        setState(() {
+          _notifications = notifications;
+        });
+      }
     } catch (e) {
       Logger.error('Failed to load notifications in icon: $e');
       
@@ -64,11 +64,13 @@ class _NotificationIconState extends State<NotificationIcon> {
         ),
       ];
       
-      setState(() {
-        _notifications = mockNotifications;
-      });
+      if (mounted) {
+        setState(() {
+          _notifications = mockNotifications;
+        });
+      }
     } finally {
-      setState(() => _isLoading = false);
+      // Loading complete
     }
   }
 
@@ -298,13 +300,13 @@ class _NotificationIconState extends State<NotificationIcon> {
   Future<void> _markAllAsRead() async {
     try {
       await _notificationService.markAllNotificationsAsRead();
-      setState(() {
-        _notifications = _notifications.map((notification) {
-          return notification.copyWith(isRead: true);
-        }).toList();
-      });
-
       if (mounted) {
+        setState(() {
+          _notifications = _notifications.map((notification) {
+            return notification.copyWith(isRead: true);
+          }).toList();
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('All notifications marked as read'),
@@ -316,13 +318,13 @@ class _NotificationIconState extends State<NotificationIcon> {
     } catch (e) {
       Logger.error('Failed to mark all notifications as read: $e');
       // Still update UI optimistically
-      setState(() {
-        _notifications = _notifications.map((notification) {
-          return notification.copyWith(isRead: true);
-        }).toList();
-      });
-      
       if (mounted) {
+        setState(() {
+          _notifications = _notifications.map((notification) {
+            return notification.copyWith(isRead: true);
+          }).toList();
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Marked as read locally. Error: ${e.toString()}'),

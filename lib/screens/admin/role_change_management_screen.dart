@@ -119,7 +119,7 @@ class _RoleChangeManagementScreenState extends State<RoleChangeManagementScreen>
                           _selectedStatus = filter['value']!;
                         });
                       },
-                      selectedColor: const Color(0xFF6366F1).withOpacity(0.2),
+                      selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
                       checkmarkColor: const Color(0xFF6366F1),
                     ),
                   );

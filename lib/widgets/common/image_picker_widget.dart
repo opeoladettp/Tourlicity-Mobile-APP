@@ -1,30 +1,33 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../services/file_picker_service.dart' as fps;
-import '../../services/file_upload_service.dart';
-import '../../utils/logger.dart';
+import '../../services/image_upload_service.dart';
 
 class ImagePickerWidget extends StatefulWidget {
-  final Function(String) onImageSelected; // URL callback
-  final Function(fps.PickedFile)? onFileSelected; // File callback
   final String? initialImageUrl;
+  final Function(String?) onImageSelected;
+  final String? imageType; // 'features', 'teaser', or 'profile'
   final String? label;
+  final bool isRequired;
+  final double? height;
+  final double? width;
   final String? hint;
-  final bool required;
-  final bool allowUpload;
   final double? previewSize;
+  final bool allowUpload;
   final bool showUrlInput;
 
   const ImagePickerWidget({
     super.key,
-    required this.onImageSelected,
-    this.onFileSelected,
     this.initialImageUrl,
+    required this.onImageSelected,
+    this.imageType = 'general',
     this.label,
+    this.isRequired = false,
+    this.height = 200,
+    this.width = double.infinity,
     this.hint,
-    this.required = false,
+    this.previewSize,
     this.allowUpload = true,
-    this.previewSize = 80,
     this.showUrlInput = true,
   });
 
@@ -33,30 +36,117 @@ class ImagePickerWidget extends StatefulWidget {
 }
 
 class _ImagePickerWidgetState extends State<ImagePickerWidget> {
-  final fps.FilePickerService _filePickerService = fps.FilePickerService();
-  final FileUploadService _uploadService = FileUploadService();
-  final TextEditingController _urlController = TextEditingController();
-
-  String? _currentImageUrl;
-  fps.PickedFile? _selectedFile;
+  String? _imageUrl;
+  File? _selectedFile;
   bool _isUploading = false;
-  double _uploadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _currentImageUrl = widget.initialImageUrl;
-    _urlController.text = widget.initialImageUrl ?? '';
+    _imageUrl = widget.initialImageUrl;
   }
 
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              if (_imageUrl != null || _selectedFile != null)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Remove Image'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeImage();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final File? file = await ImageUploadService.pickImage(source: source);
+      if (file != null) {
+        setState(() {
+          _selectedFile = file;
+          _imageUrl = null; // Clear URL when new file is selected
+          _isUploading = true;
+        });
+
+        // Upload the image based on type
+        String uploadedUrl;
+        if (widget.imageType == 'profile') {
+          uploadedUrl = await ImageUploadService.uploadProfilePicture(
+            imageFile: file,
+          );
+        } else {
+          uploadedUrl = await ImageUploadService.uploadTourImage(
+            imageFile: file,
+            imageType: widget.imageType ?? 'general',
+          );
+        }
+
+        setState(() {
+          _imageUrl = uploadedUrl;
+          _isUploading = false;
+        });
+
+        widget.onImageSelected(uploadedUrl);
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _imageUrl = null;
+      _selectedFile = null;
+    });
+    widget.onImageSelected(null);
   }
 
   @override
   Widget build(BuildContext context) {
+    // For profile pictures, use circular layout
+    if (widget.previewSize != null) {
+      return _buildProfilePictureLayout();
+    }
+
+    // Default rectangular layout for tour images
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -70,308 +160,191 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (widget.required)
+              if (widget.isRequired)
                 const Text(
                   ' *',
                   style: TextStyle(color: Colors.red),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
         ],
+        GestureDetector(
+          onTap: _isUploading ? null : _showImageSourceDialog,
+          child: Container(
+            height: widget.height,
+            width: widget.width,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 2,
+                style: BorderStyle.solid,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: _buildImageContent(),
+          ),
+        ),
+      ],
+    );
+  }
 
-        // Image preview and picker
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image preview
-            _buildImagePreview(),
-            const SizedBox(width: 16),
-            
-            // Picker buttons
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.allowUpload) _buildPickerButtons(),
-                  if (widget.showUrlInput) ...[
-                    if (widget.allowUpload) const SizedBox(height: 12),
-                    _buildUrlInput(),
-                  ],
-                ],
+  Widget _buildProfilePictureLayout() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _isUploading ? null : _showImageSourceDialog,
+          child: Container(
+            width: widget.previewSize,
+            height: widget.previewSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 3,
               ),
             ),
-          ],
+            child: _buildCircularImageContent(),
+          ),
         ),
-
-        // Upload progress
-        if (_isUploading) ...[
-          const SizedBox(height: 12),
-          _buildUploadProgress(),
+        if (widget.hint != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            widget.hint!,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ],
     );
   }
 
-  Widget _buildImagePreview() {
-    final size = widget.previewSize ?? 80;
-    
+  Widget _buildImageContent() {
+    if (_isUploading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 8),
+            Text('Uploading...'),
+          ],
+        ),
+      );
+    }
+
+    if (_selectedFile != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.file(
+          _selectedFile!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        ),
+      );
+    }
+
+    if (_imageUrl != null && _imageUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.network(
+          _imageUrl!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildPlaceholder();
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const Center(child: CircularProgressIndicator());
+          },
+        ),
+      );
+    }
+
+    return _buildPlaceholder();
+  }
+
+  Widget _buildCircularImageContent() {
+    if (_isUploading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_selectedFile != null) {
+      return ClipOval(
+        child: Image.file(
+          _selectedFile!,
+          fit: BoxFit.cover,
+          width: widget.previewSize,
+          height: widget.previewSize,
+        ),
+      );
+    }
+
+    if (_imageUrl != null && _imageUrl!.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          _imageUrl!,
+          fit: BoxFit.cover,
+          width: widget.previewSize,
+          height: widget.previewSize,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildCircularPlaceholder();
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const Center(child: CircularProgressIndicator());
+          },
+        ),
+      );
+    }
+
+    return _buildCircularPlaceholder();
+  }
+
+  Widget _buildCircularPlaceholder() {
     return Container(
-      width: size,
-      height: size,
+      width: widget.previewSize,
+      height: widget.previewSize,
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        shape: BoxShape.circle,
+        color: Colors.grey.shade100,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(7),
-        child: _currentImageUrl != null && _currentImageUrl!.isNotEmpty
-            ? Image.network(
-                _currentImageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholder();
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                      strokeWidth: 2,
-                    ),
-                  );
-                },
-              )
-            : _buildPlaceholder(),
+      child: Icon(
+        Icons.person,
+        size: (widget.previewSize ?? 120) * 0.5,
+        color: Colors.grey.shade400,
       ),
     );
   }
 
   Widget _buildPlaceholder() {
-    return Container(
-      color: Colors.grey[200],
-      child: const Icon(
-        Icons.image,
-        color: Colors.grey,
-        size: 32,
-      ),
-    );
-  }
-
-  Widget _buildPickerButtons() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _isUploading ? null : () => _pickImage(ImageSource.gallery),
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Gallery'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
-              foregroundColor: Colors.white,
-            ),
-          ),
+        Icon(
+          Icons.add_photo_alternate,
+          size: 48,
+          color: Colors.grey.shade400,
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _isUploading ? null : () => _pickImage(ImageSource.camera),
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Camera'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
+        Text(
+          widget.label != null 
+              ? 'Tap to add ${widget.label!.toLowerCase()}'
+              : 'Tap to add image',
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 14,
           ),
-        ),
-        if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _isUploading ? null : _clearImage,
-              icon: const Icon(Icons.clear),
-              label: const Text('Clear'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildUrlInput() {
-    return TextField(
-      controller: _urlController,
-      decoration: InputDecoration(
-        labelText: 'Or enter image URL',
-        border: const OutlineInputBorder(),
-        prefixIcon: const Icon(Icons.link),
-        hintText: widget.hint ?? 'https://example.com/image.jpg',
-        suffixIcon: _urlController.text.isNotEmpty
-            ? IconButton(
-                onPressed: () {
-                  _urlController.clear();
-                  _updateImageUrl('');
-                },
-                icon: const Icon(Icons.clear),
-              )
-            : null,
-      ),
-      onChanged: _updateImageUrl,
-      enabled: !_isUploading,
-    );
-  }
-
-  Widget _buildUploadProgress() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.cloud_upload, size: 16, color: Colors.blue),
-            const SizedBox(width: 8),
-            Text(
-              'Uploading... ${(_uploadProgress * 100).toInt()}%',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.blue,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: _uploadProgress,
-          backgroundColor: Colors.grey[300],
-          valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
         ),
       ],
     );
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final file = await _filePickerService.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (file != null) {
-        setState(() {
-          _selectedFile = file;
-        });
-
-        widget.onFileSelected?.call(file);
-
-        // If upload is enabled, upload the file
-        if (widget.allowUpload) {
-          await _uploadFile(file);
-        } else {
-          // If upload is not enabled, just show the local file
-          _updateImageUrl(file.path ?? '');
-        }
-      }
-    } catch (e) {
-      Logger.error('Error picking image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting image: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _uploadFile(fps.PickedFile file) async {
-    setState(() {
-      _isUploading = true;
-      _uploadProgress = 0.0;
-    });
-
-    try {
-      final result = await _uploadService.uploadImage(
-        file,
-        onProgress: (progress) {
-          setState(() {
-            _uploadProgress = progress;
-          });
-        },
-      );
-
-      if (result.success && result.url != null) {
-        _updateImageUrl(result.url!);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image uploaded successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        throw Exception(result.error ?? 'Upload failed');
-      }
-    } catch (e) {
-      Logger.error('Error uploading image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Upload failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        _isUploading = false;
-        _uploadProgress = 0.0;
-      });
-    }
-  }
-
-  void _updateImageUrl(String url) {
-    setState(() {
-      _currentImageUrl = url;
-      _urlController.text = url;
-    });
-    widget.onImageSelected(url);
-  }
-
-  void _clearImage() {
-    setState(() {
-      _currentImageUrl = null;
-      _selectedFile = null;
-      _urlController.clear();
-    });
-    widget.onImageSelected('');
-  }
-
-  /// Get current image URL
-  String? get currentImageUrl => _currentImageUrl;
-
-  /// Get selected file
-  fps.PickedFile? get selectedFile => _selectedFile;
-
-  /// Set image URL programmatically
-  void setImageUrl(String? url) {
-    setState(() {
-      _currentImageUrl = url;
-      _urlController.text = url ?? '';
-    });
   }
 }

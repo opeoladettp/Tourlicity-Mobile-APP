@@ -90,6 +90,7 @@ class CustomTour {
   
   int get registeredTourists => maxTourists - remainingTourists;
   bool get isFull => remainingTourists <= 0;
+  int get durationDays => endDate.difference(startDate).inDays + 1;
   
   String get statusDisplayName {
     switch (status) {

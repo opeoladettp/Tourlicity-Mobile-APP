@@ -1,6 +1,9 @@
+import 'custom_tour.dart';
+
 class Registration {
   final String id;
   final String customTourId;
+  final CustomTour? customTour; // Populated tour data from API
   final String touristId;
   final String providerId;
   final String status;
@@ -19,6 +22,7 @@ class Registration {
   Registration({
     required this.id,
     required this.customTourId,
+    this.customTour,
     required this.touristId,
     required this.providerId,
     required this.status,
@@ -37,25 +41,35 @@ class Registration {
 
   factory Registration.fromJson(Map<String, dynamic> json) {
     // Handle nested objects
-    String customTourId = json['custom_tour_id'];
-    String providerId = json['provider_id'];
+    String customTourId;
+    CustomTour? customTour;
+    String providerId;
     
+    // Handle custom_tour_id - can be string or populated object
     if (json['custom_tour_id'] is Map) {
-      customTourId = json['custom_tour_id']['_id'] ?? json['custom_tour_id']['id'];
+      final tourData = json['custom_tour_id'] as Map<String, dynamic>;
+      customTourId = tourData['_id'] ?? tourData['id'] ?? '';
+      customTour = CustomTour.fromJson(tourData);
+    } else {
+      customTourId = json['custom_tour_id'] ?? '';
     }
     
+    // Handle provider_id - can be string or populated object
     if (json['provider_id'] is Map) {
-      providerId = json['provider_id']['_id'] ?? json['provider_id']['id'];
+      providerId = json['provider_id']['_id'] ?? json['provider_id']['id'] ?? '';
+    } else {
+      providerId = json['provider_id'] ?? '';
     }
 
     return Registration(
-      id: json['_id'] ?? json['id'],
+      id: json['_id'] ?? json['id'] ?? '',
       customTourId: customTourId,
-      touristId: json['tourist_id'],
+      customTour: customTour,
+      touristId: json['tourist_id'] ?? '',
       providerId: providerId,
       status: json['status'] ?? 'pending',
       confirmationCode: json['confirmation_code'] ?? '',
-      registrationDate: DateTime.parse(json['registration_date'] ?? json['created_date'] ?? DateTime.now().toIso8601String()),
+      registrationDate: DateTime.tryParse(json['registration_date'] ?? json['created_date'] ?? '') ?? DateTime.now(),
       notes: json['notes'],
       specialRequirements: json['special_requirements'],
       emergencyContactName: json['emergency_contact_name'],
@@ -63,15 +77,15 @@ class Registration {
       paymentStatus: json['payment_status'] ?? 'pending',
       paymentAmount: json['payment_amount']?.toDouble(),
       paymentCurrency: json['payment_currency'],
-      createdDate: DateTime.parse(json['created_date'] ?? DateTime.now().toIso8601String()),
-      updatedDate: DateTime.parse(json['updated_date'] ?? DateTime.now().toIso8601String()),
+      createdDate: DateTime.tryParse(json['created_date'] ?? '') ?? DateTime.now(),
+      updatedDate: DateTime.tryParse(json['updated_date'] ?? '') ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'custom_tour_id': customTourId,
+      'custom_tour_id': customTour?.toJson() ?? customTourId,
       'tourist_id': touristId,
       'provider_id': providerId,
       'status': status,

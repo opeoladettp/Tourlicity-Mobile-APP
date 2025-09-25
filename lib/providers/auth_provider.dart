@@ -19,6 +19,7 @@ class AuthProvider with ChangeNotifier {
   String? get error => _error;
   bool get isAuthenticated => _user != null;
   bool get requiresProfileCompletion => _requiresProfileCompletion;
+  bool get hasCheckedAuth => _hasCheckedAuth;
   bool get canAccessMainApp =>
       _user != null && _user!.isProfileComplete && _user!.isActive;
 
@@ -134,6 +135,23 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Force refresh user data from backend (for debugging)
+  Future<void> forceRefreshUserData() async {
+    Logger.info('🔄 Force refreshing user data from backend...');
+    try {
+      _user = await _authService.getCurrentUser();
+      if (_user != null) {
+        Logger.info('✅ User data refreshed successfully');
+        _checkProfileCompletion();
+        notifyListeners();
+      } else {
+        Logger.error('❌ Failed to refresh user data - got null');
+      }
+    } catch (e) {
+      Logger.error('❌ Error force refreshing user data: $e');
+    }
+  }
+
   Future<void> updateProfile({
     required String firstName,
     required String lastName,
@@ -148,6 +166,9 @@ class AuthProvider with ChangeNotifier {
     _clearError();
 
     try {
+      // Clear cache before updating
+      _authService.clearCache();
+
       _user = await _authService.updateProfile(
         firstName: firstName,
         lastName: lastName,
@@ -177,7 +198,7 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _user = await _authService.resetToGoogleProfilePicture(googlePictureUrl);
-      
+
       if (_user != null) {
         Logger.info('✅ Profile picture reset to Google picture successfully');
       }
@@ -295,7 +316,7 @@ class AuthProvider with ChangeNotifier {
   /// Refresh user data from the server
   Future<void> refreshUser() async {
     if (_user == null) return;
-    
+
     try {
       final refreshedUser = await _authService.getCurrentUser();
       if (refreshedUser != null) {

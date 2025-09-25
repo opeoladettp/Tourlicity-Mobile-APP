@@ -74,18 +74,6 @@ class TouristDashboardContent extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () => context.push(AppRoutes.tourTemplateBrowse),
-                                  icon: const Icon(Icons.description_outlined),
-                                  label: const Text('Browse Templates'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.purple,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                         ],

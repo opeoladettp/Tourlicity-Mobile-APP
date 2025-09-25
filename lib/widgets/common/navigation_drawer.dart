@@ -29,7 +29,7 @@ class NavigationDrawer extends StatelessWidget {
               color: Color(0xFF6366F1),
             ),
             accountName: Text(
-              user?.name ?? 'Tourist',
+              user?.fullName.isNotEmpty == true ? user!.fullName : 'Tourist',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -43,7 +43,7 @@ class NavigationDrawer extends StatelessWidget {
                   : null,
               child: user?.profilePicture == null 
                   ? Text(
-                      user?.name?.substring(0, 1).toUpperCase() ?? 'T',
+                      user?.fullName.isNotEmpty == true ? user!.fullName.substring(0, 1).toUpperCase() : 'T',
                       style: const TextStyle(
                         color: Color(0xFF6366F1),
                         fontSize: 24,
@@ -89,11 +89,27 @@ class NavigationDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
-                  icon: Icons.description_outlined,
-                  title: 'Browse Templates',
-                  route: AppRoutes.tourTemplateBrowse,
-                  color: Colors.purple,
+                  icon: Icons.campaign,
+                  title: 'Tour Messages',
+                  route: AppRoutes.tourBroadcasts,
+                  color: Colors.indigo,
                 ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.event_note,
+                  title: 'My Itinerary',
+                  route: AppRoutes.tourItineraryView,
+                  color: Colors.teal,
+                ),
+                // Tour Templates - Only for Admins and Providers
+                if (user?.userType != 'tourist')
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.description_outlined,
+                    title: 'Browse Templates',
+                    route: AppRoutes.tourTemplateBrowse,
+                    color: Colors.purple,
+                  ),
                 _buildDrawerItem(
                   context,
                   icon: Icons.qr_code_scanner,
@@ -165,6 +181,27 @@ class NavigationDrawer extends StatelessWidget {
                     icon: Icons.description_outlined,
                     title: 'Tour Templates',
                     route: AppRoutes.tourTemplateManagement,
+                    color: Colors.indigo,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.event_note,
+                    title: 'Tour Itineraries',
+                    route: AppRoutes.tourItineraryManagement,
+                    color: Colors.teal,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.library_books,
+                    title: 'Activity Templates',
+                    route: AppRoutes.defaultActivityManagement,
+                    color: Colors.deepPurple,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.campaign,
+                    title: 'Tour Broadcasts',
+                    route: AppRoutes.tourBroadcastManagement,
                     color: Colors.indigo,
                   ),
                   _buildDrawerItem(

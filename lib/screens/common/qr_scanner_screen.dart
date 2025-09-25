@@ -211,7 +211,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.pop(); // Go back to previous screen
+        if (mounted) {
+          context.pop(); // Go back to previous screen
+        }
       }
     } catch (e) {
       Logger.error('Failed to register for tour: $e');

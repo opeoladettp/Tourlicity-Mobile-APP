@@ -4,8 +4,11 @@ import '../../providers/auth_provider.dart';
 import '../../providers/tour_provider.dart';
 import '../../widgets/common/loading_overlay.dart';
 import '../../widgets/common/app_bar_actions.dart';
+import '../../widgets/common/image_picker_widget.dart';
+import '../../widgets/common/multiple_image_picker_widget.dart';
 import '../../services/tour_template_service.dart';
 import '../../models/tour_template.dart';
+import '../../utils/logger.dart';
 
 class TourManagementScreen extends StatefulWidget {
   const TourManagementScreen({super.key});
@@ -19,14 +22,19 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _maxTouristsController = TextEditingController(text: '15');
+  final _groupChatLinkController = TextEditingController();
   final TourTemplateService _tourTemplateService = TourTemplateService();
-  
+
   DateTime? _startDate;
   DateTime? _endDate;
   String _status = 'draft';
   TourTemplate? _selectedTemplate;
   List<TourTemplate> _availableTemplates = [];
   bool _isLoadingTemplates = false;
+
+  // Image fields
+  String? _featuresImageUrl;
+  List<String> _teaserImageUrls = [];
 
   @override
   void initState() {
@@ -39,6 +47,7 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _maxTouristsController.dispose();
+    _groupChatLinkController.dispose();
     super.dispose();
   }
 
@@ -49,15 +58,17 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
 
     try {
       final templates = await _tourTemplateService.getActiveTourTemplates();
-      print('DEBUG: Loaded ${templates.length} active tour templates');
+      Logger.debug('Loaded ${templates.length} active tour templates');
       for (var template in templates) {
-        print('DEBUG: Template - ${template.templateName} (Active: ${template.isActive})');
+        Logger.debug(
+          'Template - ${template.templateName} (Active: ${template.isActive})',
+        );
       }
       setState(() {
         _availableTemplates = templates;
       });
     } catch (e) {
-      print('DEBUG: Error loading templates: $e');
+      Logger.error('Error loading templates: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -117,19 +128,20 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
                     _isLoadingTemplates
                         ? const Center(child: CircularProgressIndicator())
                         : DropdownButtonFormField<TourTemplate>(
-                            value: _selectedTemplate,
+                            initialValue: _selectedTemplate,
                             decoration: const InputDecoration(
                               labelText: 'Tour Template (Optional)',
                               border: OutlineInputBorder(),
-                              helperText: 'Select a template to pre-fill tour details',
+                              helperText:
+                                  'Select a template to pre-fill tour details',
                             ),
                             items: [
                               const DropdownMenuItem<TourTemplate>(
                                 value: null,
                                 child: Text('No Template - Create Custom Tour'),
                               ),
-                              ..._availableTemplates.map((template) =>
-                                DropdownMenuItem<TourTemplate>(
+                              ..._availableTemplates.map(
+                                (template) => DropdownMenuItem<TourTemplate>(
                                   value: template,
                                   child: Text(template.templateName),
                                 ),
@@ -140,9 +152,14 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
                                 _selectedTemplate = template;
                                 if (template != null) {
                                   _nameController.text = template.templateName;
-                                  _descriptionController.text = template.description;
+                                  _descriptionController.text =
+                                      template.description;
                                   _startDate = template.startDate;
                                   _endDate = template.endDate;
+                                  _featuresImageUrl = template.featuresImage;
+                                  _teaserImageUrls = List.from(
+                                    template.teaserImages,
+                                  );
                                 }
                               });
                             },
@@ -174,6 +191,17 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
                         }
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _groupChatLinkController,
+                      decoration: const InputDecoration(
+                        labelText: 'Group Chat Link (Optional)',
+                        border: OutlineInputBorder(),
+                        helperText:
+                            'WhatsApp, Telegram, or other group chat link',
+                      ),
+                      keyboardType: TextInputType.url,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -248,6 +276,35 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Features Image Section
+                    ImagePickerWidget(
+                      initialImageUrl: _featuresImageUrl,
+                      onImageSelected: (url) {
+                        setState(() {
+                          _featuresImageUrl = url;
+                        });
+                      },
+                      imageType: 'features',
+                      label: 'Features Image',
+                      isRequired: false,
+                      height: 200,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Teaser Images Section
+                    MultipleImagePickerWidget(
+                      initialImageUrls: _teaserImageUrls,
+                      onImagesChanged: (urls) {
+                        setState(() {
+                          _teaserImageUrls = urls;
+                        });
+                      },
+                      imageType: 'teaser',
+                      label: 'Teaser Images',
+                      maxImages: 5,
                     ),
                     const SizedBox(height: 32),
                     SizedBox(
@@ -345,9 +402,15 @@ class _TourManagementScreenState extends State<TourManagementScreen> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        tourTemplateId: _selectedTemplate?.id,
         startDate: _startDate,
         endDate: _endDate,
         maxTourists: int.parse(_maxTouristsController.text.trim()),
+        groupChatLink: _groupChatLinkController.text.trim().isEmpty
+            ? null
+            : _groupChatLinkController.text.trim(),
+        featuresImage: _featuresImageUrl,
+        teaserImages: _teaserImageUrls.isEmpty ? null : _teaserImageUrls,
       );
 
       if (success && mounted) {

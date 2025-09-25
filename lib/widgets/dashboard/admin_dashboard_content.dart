@@ -27,16 +27,22 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
   }
 
   Future<void> _loadStatistics() async {
-    setState(() => _isLoadingStats = true);
+    if (mounted) {
+      setState(() => _isLoadingStats = true);
+    }
     try {
       final stats = await _statisticsService.getSystemStatistics();
-      setState(() {
-        _statistics = stats;
-      });
+      if (mounted) {
+        setState(() {
+          _statistics = stats;
+        });
+      }
     } catch (e) {
       // Statistics remain at 0 if loading fails
     } finally {
-      setState(() => _isLoadingStats = false);
+      if (mounted) {
+        setState(() => _isLoadingStats = false);
+      }
     }
   }
 

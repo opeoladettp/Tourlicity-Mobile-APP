@@ -4,6 +4,7 @@ import 'providers/auth_provider.dart';
 import 'providers/tour_provider.dart';
 import 'providers/notification_provider.dart';
 import 'config/routes.dart';
+import 'utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,22 +24,29 @@ class TourlicityApp extends StatelessWidget {
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
-          // Check auth status and initialize notifications on app startup
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            // Start auth check (non-blocking)
-            authProvider.checkAuthStatus();
-
-            // Initialize notifications in background (non-blocking)
+          // Only initialize once when the app starts - prevent infinite loop
+          if (!authProvider.hasCheckedAuth) {
+            // Capture the notification provider reference before async operations
             final notificationProvider = Provider.of<NotificationProvider>(
               context,
               listen: false,
             );
-            // Don't await - let it initialize in background
-            notificationProvider.initialize().catchError((e) {
-              // Silently handle initialization errors
-              print('Notification initialization failed: $e');
+            
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              // Start auth check first
+              await authProvider.checkAuthStatus();
+
+              // Wait a bit before initializing notifications to prevent rate limiting
+              await Future.delayed(const Duration(seconds: 1));
+
+              // Initialize notifications in background (non-blocking)
+              // Using the captured provider reference instead of context
+              notificationProvider.initialize().catchError((e) {
+                // Silently handle initialization errors
+                Logger.error('Notification initialization failed: $e');
+              });
             });
-          });
+          }
 
           return MaterialApp.router(
             title: 'Tourlicity',

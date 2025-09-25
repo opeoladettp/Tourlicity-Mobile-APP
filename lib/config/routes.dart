@@ -15,11 +15,17 @@ import '../screens/admin/role_change_management_screen.dart';
 import '../screens/admin/tour_template_management_screen.dart';
 import '../screens/admin/tour_template_activities_screen.dart';
 import '../screens/admin/broadcast_notification_screen.dart';
+import '../screens/admin/tour_broadcast_management_screen.dart';
 import '../screens/admin/notification_management_screen.dart';
 import '../screens/admin/custom_tour_management_screen.dart';
 import '../screens/common/qr_scanner_screen.dart';
 import '../screens/common/notifications_screen.dart';
 import '../screens/tourist/tour_template_browse_screen.dart';
+import '../screens/tourist/tour_broadcasts_screen.dart';
+import '../screens/admin/enhanced_calendar_entry_screen.dart';
+import '../screens/admin/tour_itinerary_management_screen.dart';
+import '../screens/admin/default_activity_management_screen.dart';
+import '../screens/tourist/tour_itinerary_view_screen.dart';
 
 class AppRoutes {
   static const String login = '/login';
@@ -36,24 +42,31 @@ class AppRoutes {
   static const String tourTemplateManagement = '/tour-template-management';
   static const String tourTemplateActivities = '/tour-template-activities';
   static const String broadcastNotification = '/broadcast-notification';
+  static const String tourBroadcastManagement = '/tour-broadcast-management';
   static const String notificationManagement = '/notification-management';
   static const String customTourManagement = '/custom-tour-management';
   static const String qrScanner = '/qr-scanner';
   static const String notifications = '/notifications';
   static const String tourTemplateBrowse = '/tour-template-browse';
+  static const String tourBroadcasts = '/tour-broadcasts';
+  static const String enhancedCalendarEntry = '/enhanced-calendar-entry';
+  static const String tourItineraryManagement = '/tour-itinerary-management';
+  static const String defaultActivityManagement =
+      '/default-activity-management';
+  static const String tourItineraryView = '/tour-itinerary-view';
 
   static GoRouter createRouter() {
     return GoRouter(
       initialLocation: login,
       redirect: (context, state) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        
+
         // Don't call checkAuthStatus here as it causes setState during build
         // Auth status should be checked in main.dart or app initialization
-        
+
         final user = authProvider.user;
         final currentPath = state.matchedLocation;
-        
+
         // If not authenticated, go to login (except if already on login)
         if (user == null) {
           if (currentPath != login) {
@@ -61,7 +74,7 @@ class AppRoutes {
           }
           return null;
         }
-        
+
         // If profile incomplete, go to profile completion (except if already there)
         if (authProvider.requiresProfileCompletion) {
           if (currentPath != profileCompletion) {
@@ -69,19 +82,16 @@ class AppRoutes {
           }
           return null;
         }
-        
+
         // If authenticated with complete profile but on auth pages, redirect to dashboard
         if (currentPath == login || currentPath == profileCompletion) {
           return dashboard;
         }
-        
+
         return null; // No redirect needed
       },
       routes: [
-        GoRoute(
-          path: login,
-          builder: (context, state) => const LoginScreen(),
-        ),
+        GoRoute(path: login, builder: (context, state) => const LoginScreen()),
         GoRoute(
           path: profileCompletion,
           builder: (context, state) => const ProfileCompletionScreen(),
@@ -137,6 +147,10 @@ class AppRoutes {
           builder: (context, state) => const BroadcastNotificationScreen(),
         ),
         GoRoute(
+          path: tourBroadcastManagement,
+          builder: (context, state) => const TourBroadcastManagementScreen(),
+        ),
+        GoRoute(
           path: notificationManagement,
           builder: (context, state) => const NotificationManagementScreen(),
         ),
@@ -155,6 +169,35 @@ class AppRoutes {
         GoRoute(
           path: tourTemplateBrowse,
           builder: (context, state) => const TourTemplateBrowseScreen(),
+        ),
+        GoRoute(
+          path: tourBroadcasts,
+          builder: (context, state) => const TourBroadcastsScreen(),
+        ),
+        GoRoute(
+          path: enhancedCalendarEntry,
+          builder: (context, state) {
+            final tourId = state.uri.queryParameters['tourId'];
+            return EnhancedCalendarEntryScreen(tourId: tourId);
+          },
+        ),
+        GoRoute(
+          path: tourItineraryManagement,
+          builder: (context, state) {
+            final tourId = state.uri.queryParameters['tourId'];
+            return TourItineraryManagementScreen(tourId: tourId);
+          },
+        ),
+        GoRoute(
+          path: defaultActivityManagement,
+          builder: (context, state) => const DefaultActivityManagementScreen(),
+        ),
+        GoRoute(
+          path: tourItineraryView,
+          builder: (context, state) {
+            final tourId = state.uri.queryParameters['tourId'];
+            return TourItineraryViewScreen(tourId: tourId);
+          },
         ),
       ],
     );

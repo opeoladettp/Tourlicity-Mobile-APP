@@ -17,8 +17,9 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final UserNotificationService _notificationService = UserNotificationService();
-  
+  final UserNotificationService _notificationService =
+      UserNotificationService();
+
   List<AppNotification> _notifications = [];
   bool _isLoading = true;
   String _filter = 'all';
@@ -37,15 +38,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _notifications = notifications;
       });
-      Logger.info('✅ Loaded ${notifications.length} notifications from database');
+      Logger.info(
+        '✅ Loaded ${notifications.length} notifications from database',
+      );
     } catch (e) {
       Logger.error('❌ Failed to load notifications: $e');
-      
+
       // Set empty list on error - no mock data
       setState(() {
         _notifications = [];
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -181,11 +184,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
@@ -198,10 +197,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 8),
           Text(
             'When you receive notifications, they\'ll appear here',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -262,7 +258,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     try {
       await _notificationService.deleteNotification(notification.id);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -272,7 +268,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onPressed: () {
                 setState(() {
                   _notifications.add(notification);
-                  _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                  _notifications.sort(
+                    (a, b) => b.timestamp.compareTo(a.timestamp),
+                  );
                 });
               },
             ),
@@ -286,7 +284,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _notifications.add(notification);
         _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -299,24 +297,165 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _handleNotificationNavigation(AppNotification notification) {
-    // TODO: Implement navigation based on notification type and data
+    final data = notification.data ?? {};
+
     switch (notification.type) {
       case 'tour_update':
-        // Navigate to tour details
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Navigation to tour details will be implemented'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+      case 'tour_status_change':
+      case 'tour_cancelled':
+      case 'tour_rescheduled':
+        _navigateToTourDetails(data);
         break;
+
+      case 'tour_broadcast':
+      case 'broadcast_message':
+        _navigateToTourBroadcasts(data);
+        break;
+
+      case 'role_change_approved':
+      case 'role_change_rejected':
+      case 'role_change_pending':
+        _navigateToRoleChangeManagement();
+        break;
+
+      case 'new_tour_template':
+      case 'tour_template_update':
+        _navigateToTourTemplates(data);
+        break;
+
+      case 'profile_update_required':
+      case 'profile_incomplete':
+        _navigateToProfileUpdate();
+        break;
+
       case 'system_announcement':
-        // Show full announcement dialog
+      case 'maintenance_notice':
+        // Show full announcement dialog for system messages
         _showNotificationDialog(notification);
         break;
+
+      case 'tour_invitation':
+      case 'tour_join_request':
+        _navigateToTourSearch(data);
+        break;
+
+      case 'itinerary_update':
+      case 'activity_added':
+      case 'activity_cancelled':
+        _navigateToTourItinerary(data);
+        break;
+
+      case 'payment_reminder':
+      case 'payment_confirmed':
+      case 'payment_failed':
+        _navigateToMyTours(data);
+        break;
+
       default:
-        // Show notification details
+        // Show notification details for unknown types
         _showNotificationDialog(notification);
+    }
+  }
+
+  void _navigateToTourDetails(Map<String, dynamic> data) {
+    final tourId = data['tour_id'] ?? data['tourId'];
+    if (tourId != null) {
+      // Navigate to tour management with specific tour ID
+      _safeNavigate(
+        '${AppRoutes.tourManagement}?id=$tourId',
+        fallbackRoute: AppRoutes.myTours,
+      );
+    } else {
+      // Navigate to my tours if no specific tour ID
+      _safeNavigate(AppRoutes.myTours, fallbackRoute: AppRoutes.dashboard);
+    }
+  }
+
+  void _navigateToTourBroadcasts(Map<String, dynamic> data) {
+    final tourId = data['tour_id'] ?? data['tourId'];
+    if (tourId != null) {
+      // Navigate to tour broadcasts with tour filter
+      _safeNavigate(
+        '${AppRoutes.tourBroadcasts}?tourId=$tourId',
+        fallbackRoute: AppRoutes.tourBroadcasts,
+      );
+    } else {
+      // Navigate to general tour broadcasts
+      _safeNavigate(
+        AppRoutes.tourBroadcasts,
+        fallbackRoute: AppRoutes.dashboard,
+      );
+    }
+  }
+
+  void _navigateToRoleChangeManagement() {
+    // Navigate to role change management
+    _safeNavigate(
+      AppRoutes.roleChangeManagement,
+      fallbackRoute: AppRoutes.dashboard,
+    );
+  }
+
+  void _navigateToTourTemplates(Map<String, dynamic> data) {
+    final templateId = data['template_id'] ?? data['templateId'];
+    if (templateId != null) {
+      // Navigate to specific template activities
+      _safeNavigate(
+        '${AppRoutes.tourTemplateActivities}/$templateId',
+        fallbackRoute: AppRoutes.tourTemplateBrowse,
+      );
+    } else {
+      // Navigate to tour template browse for tourists, management for admins
+      _safeNavigate(
+        AppRoutes.tourTemplateBrowse,
+        fallbackRoute: AppRoutes.dashboard,
+      );
+    }
+  }
+
+  void _navigateToProfileUpdate() {
+    _safeNavigate(AppRoutes.profileUpdate, fallbackRoute: AppRoutes.dashboard);
+  }
+
+  void _navigateToTourSearch(Map<String, dynamic> data) {
+    final joinCode = data['join_code'] ?? data['joinCode'];
+    if (joinCode != null) {
+      // Navigate to tour search with pre-filled join code
+      _safeNavigate(
+        '${AppRoutes.tourSearch}?joinCode=$joinCode',
+        fallbackRoute: AppRoutes.tourSearch,
+      );
+    } else {
+      // Navigate to general tour search
+      _safeNavigate(AppRoutes.tourSearch, fallbackRoute: AppRoutes.dashboard);
+    }
+  }
+
+  void _navigateToTourItinerary(Map<String, dynamic> data) {
+    final tourId = data['tour_id'] ?? data['tourId'];
+    if (tourId != null) {
+      // Navigate to tour itinerary view
+      _safeNavigate(
+        '${AppRoutes.tourItineraryView}?tourId=$tourId',
+        fallbackRoute: AppRoutes.myTours,
+      );
+    } else {
+      // Navigate to my tours if no specific tour ID
+      _safeNavigate(AppRoutes.myTours, fallbackRoute: AppRoutes.dashboard);
+    }
+  }
+
+  void _navigateToMyTours(Map<String, dynamic> data) {
+    final tourId = data['tour_id'] ?? data['tourId'];
+    if (tourId != null) {
+      // Navigate to my tours with specific tour highlighted
+      _safeNavigate(
+        '${AppRoutes.myTours}?highlightTour=$tourId',
+        fallbackRoute: AppRoutes.myTours,
+      );
+    } else {
+      // Navigate to general my tours
+      _safeNavigate(AppRoutes.myTours, fallbackRoute: AppRoutes.dashboard);
     }
   }
 
@@ -378,7 +517,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           return notification.copyWith(isRead: true);
         }).toList();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -392,5 +531,104 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   String _formatFullTimestamp(DateTime timestamp) {
     return '${timestamp.day}/${timestamp.month}/${timestamp.year} at ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Safe navigation with error handling
+  void _safeNavigate(String route, {String? fallbackRoute}) {
+    try {
+      context.push(route);
+    } catch (e) {
+      Logger.error('Navigation failed for route: $route, error: $e');
+
+      // Try fallback route if provided
+      if (fallbackRoute != null) {
+        try {
+          context.push(fallbackRoute);
+        } catch (fallbackError) {
+          Logger.error('Fallback navigation also failed: $fallbackError');
+          _showNavigationErrorSnackBar(route);
+        }
+      } else {
+        _showNavigationErrorSnackBar(route);
+      }
+    }
+  }
+
+  void _showNavigationErrorSnackBar(String route) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to navigate to $route'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Dashboard',
+            textColor: Colors.white,
+            onPressed: () => context.go(AppRoutes.dashboard),
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Get user-friendly notification type display name
+  String _getNotificationTypeDisplayName(String type) {
+    switch (type) {
+      case 'tour_update':
+        return 'Tour Update';
+      case 'tour_status_change':
+        return 'Tour Status Change';
+      case 'tour_cancelled':
+        return 'Tour Cancelled';
+      case 'tour_rescheduled':
+        return 'Tour Rescheduled';
+      case 'tour_broadcast':
+        return 'Tour Broadcast';
+      case 'broadcast_message':
+        return 'Broadcast Message';
+      case 'role_change_approved':
+        return 'Role Change Approved';
+      case 'role_change_rejected':
+        return 'Role Change Rejected';
+      case 'role_change_pending':
+        return 'Role Change Pending';
+      case 'new_tour_template':
+        return 'New Tour Template';
+      case 'tour_template_update':
+        return 'Tour Template Update';
+      case 'profile_update_required':
+        return 'Profile Update Required';
+      case 'profile_incomplete':
+        return 'Profile Incomplete';
+      case 'system_announcement':
+        return 'System Announcement';
+      case 'maintenance_notice':
+        return 'Maintenance Notice';
+      case 'tour_invitation':
+        return 'Tour Invitation';
+      case 'tour_join_request':
+        return 'Tour Join Request';
+      case 'itinerary_update':
+        return 'Itinerary Update';
+      case 'activity_added':
+        return 'Activity Added';
+      case 'activity_cancelled':
+        return 'Activity Cancelled';
+      case 'payment_reminder':
+        return 'Payment Reminder';
+      case 'payment_confirmed':
+        return 'Payment Confirmed';
+      case 'payment_failed':
+        return 'Payment Failed';
+      default:
+        return type
+            .replaceAll('_', ' ')
+            .split(' ')
+            .map(
+              (word) => word.isNotEmpty
+                  ? word[0].toUpperCase() + word.substring(1)
+                  : word,
+            )
+            .join(' ');
+    }
   }
 }

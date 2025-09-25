@@ -3,6 +3,7 @@ import '../../services/calendar_service.dart';
 import '../../services/tour_template_service.dart';
 import '../../models/calendar_entry.dart';
 import '../../models/tour_template.dart';
+import '../../models/default_activity.dart';
 import '../../utils/logger.dart';
 import '../../widgets/common/navigation_drawer.dart' as nav;
 import '../../widgets/common/app_bar_actions.dart';
@@ -11,10 +12,7 @@ import '../../widgets/common/safe_bottom_padding.dart';
 class TourTemplateActivitiesScreen extends StatefulWidget {
   final String templateId;
 
-  const TourTemplateActivitiesScreen({
-    super.key,
-    required this.templateId,
-  });
+  const TourTemplateActivitiesScreen({super.key, required this.templateId});
 
   @override
   State<TourTemplateActivitiesScreen> createState() =>
@@ -28,7 +26,7 @@ class _TourTemplateActivitiesScreenState
 
   TourTemplate? _template;
   List<CalendarEntry> _activities = [];
-  List<CalendarEntry> _defaultActivities = [];
+  List<DefaultActivity> _defaultActivities = [];
   bool _isLoading = true;
   bool _isLoadingDefaults = false;
 
@@ -39,23 +37,32 @@ class _TourTemplateActivitiesScreenState
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       // Load template details
-      final template = await _tourTemplateService.getTourTemplateById(widget.templateId);
-      
+      final template = await _tourTemplateService.getTourTemplateById(
+        widget.templateId,
+      );
+
       // Load template activities (calendar entries for this template)
       final activities = await _calendarService.getCalendarEntries();
-      final templateActivities = activities.where((activity) => 
-        activity.customTourId == widget.templateId || 
-        activity.isDefaultActivity
-      ).toList();
+      final templateActivities = activities
+          .where(
+            (activity) =>
+                activity.customTourId == widget.templateId ||
+                activity.isDefaultActivity,
+          )
+          .toList();
 
-      setState(() {
-        _template = template;
-        _activities = templateActivities;
-      });
+      if (mounted) {
+        setState(() {
+          _template = template;
+          _activities = templateActivities;
+        });
+      }
     } catch (e) {
       Logger.error('Failed to load template activities: $e');
       if (mounted) {
@@ -67,21 +74,29 @@ class _TourTemplateActivitiesScreenState
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _loadDefaultActivities() async {
-    setState(() => _isLoadingDefaults = true);
+    if (mounted) {
+      setState(() => _isLoadingDefaults = true);
+    }
     try {
       final defaults = await _calendarService.getDefaultActivities();
-      setState(() {
-        _defaultActivities = defaults;
-      });
+      if (mounted) {
+        setState(() {
+          _defaultActivities = defaults;
+        });
+      }
     } catch (e) {
       Logger.error('Failed to load default activities: $e');
     } finally {
-      setState(() => _isLoadingDefaults = false);
+      if (mounted) {
+        setState(() => _isLoadingDefaults = false);
+      }
     }
   }
 
@@ -92,9 +107,7 @@ class _TourTemplateActivitiesScreenState
         title: Text(_template?.templateName ?? 'Template Activities'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
-        actions: [
-          const BothActions(),
-        ],
+        actions: [const BothActions()],
       ),
       drawer: nav.NavigationDrawer(
         currentRoute: '/tour-template-activities/${widget.templateId}',
@@ -106,10 +119,7 @@ class _TourTemplateActivitiesScreenState
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: _buildContent(),
-            ),
+          : RefreshIndicator(onRefresh: _loadData, child: _buildContent()),
     );
   }
 
@@ -138,10 +148,7 @@ class _TourTemplateActivitiesScreenState
           children: [
             Text(
               _template!.templateName,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -162,10 +169,7 @@ class _TourTemplateActivitiesScreenState
       children: [
         const Text(
           'Template Activities',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         if (_activities.isEmpty)
@@ -206,10 +210,7 @@ class _TourTemplateActivitiesScreenState
           children: [
             const Text(
               'Default Activities',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             TextButton.icon(
               onPressed: _loadDefaultActivities,
@@ -238,7 +239,9 @@ class _TourTemplateActivitiesScreenState
             ),
           )
         else
-          ..._defaultActivities.map((activity) => _buildDefaultActivityCard(activity)),
+          ..._defaultActivities.map(
+            (activity) => _buildDefaultActivitySelectionCard(activity),
+          ),
       ],
     );
   }
@@ -332,7 +335,7 @@ class _TourTemplateActivitiesScreenState
     );
   }
 
-  Widget _buildDefaultActivityCard(CalendarEntry activity) {
+  Widget _buildDefaultActivitySelectionCard(DefaultActivity activity) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -344,7 +347,7 @@ class _TourTemplateActivitiesScreenState
               children: [
                 Expanded(
                   child: Text(
-                    activity.title,
+                    activity.activityName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -362,22 +365,26 @@ class _TourTemplateActivitiesScreenState
                 ),
               ],
             ),
-            if (activity.description != null) ...[
-              const SizedBox(height: 8),
-              Text(activity.description!),
-            ],
             const SizedBox(height: 8),
-            if (activity.location != null)
-              Row(
-                children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    activity.location!,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
+            Text(activity.description),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  activity.categoryDisplayName,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  activity.durationDisplayText,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -394,12 +401,17 @@ class _TourTemplateActivitiesScreenState
 
   Future<void> _showActivityDialog({CalendarEntry? activity}) async {
     final titleController = TextEditingController(text: activity?.title ?? '');
-    final descriptionController = TextEditingController(text: activity?.description ?? '');
-    final locationController = TextEditingController(text: activity?.location ?? '');
-    
+    final descriptionController = TextEditingController(
+      text: activity?.description ?? '',
+    );
+    final locationController = TextEditingController(
+      text: activity?.location ?? '',
+    );
+
     DateTime startTime = activity?.startTime ?? DateTime.now();
-    DateTime endTime = activity?.endTime ?? DateTime.now().add(const Duration(hours: 1));
-    
+    DateTime endTime =
+        activity?.endTime ?? DateTime.now().add(const Duration(hours: 1));
+
     String activityType = activity?.activityType ?? 'sightseeing';
     String? titleError;
 
@@ -421,7 +433,9 @@ class _TourTemplateActivitiesScreenState
                   ),
                   onChanged: (value) {
                     setState(() {
-                      titleError = value.trim().isEmpty ? 'Title is required' : null;
+                      titleError = value.trim().isEmpty
+                          ? 'Title is required'
+                          : null;
                     });
                   },
                 ),
@@ -444,21 +458,45 @@ class _TourTemplateActivitiesScreenState
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: activityType,
+                  initialValue: activityType,
                   decoration: const InputDecoration(
                     labelText: 'Activity Type',
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'sightseeing', child: Text('Sightseeing')),
+                    DropdownMenuItem(
+                      value: 'sightseeing',
+                      child: Text('Sightseeing'),
+                    ),
                     DropdownMenuItem(value: 'dining', child: Text('Dining')),
-                    DropdownMenuItem(value: 'transportation', child: Text('Transportation')),
-                    DropdownMenuItem(value: 'accommodation', child: Text('Accommodation')),
-                    DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
-                    DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
-                    DropdownMenuItem(value: 'cultural', child: Text('Cultural')),
-                    DropdownMenuItem(value: 'adventure', child: Text('Adventure')),
-                    DropdownMenuItem(value: 'relaxation', child: Text('Relaxation')),
+                    DropdownMenuItem(
+                      value: 'transportation',
+                      child: Text('Transportation'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'accommodation',
+                      child: Text('Accommodation'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'entertainment',
+                      child: Text('Entertainment'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'shopping',
+                      child: Text('Shopping'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'cultural',
+                      child: Text('Cultural'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'adventure',
+                      child: Text('Adventure'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'relaxation',
+                      child: Text('Relaxation'),
+                    ),
                     DropdownMenuItem(value: 'other', child: Text('Other')),
                   ],
                   onChanged: (value) {
@@ -481,14 +519,16 @@ class _TourTemplateActivitiesScreenState
                             context: context,
                             initialDate: startTime,
                             firstDate: _template?.startDate ?? DateTime.now(),
-                            lastDate: _template?.endDate ?? DateTime.now().add(const Duration(days: 365)),
+                            lastDate:
+                                _template?.endDate ??
+                                DateTime.now().add(const Duration(days: 365)),
                           );
-                          if (date != null) {
+                          if (date != null && context.mounted) {
                             final time = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.fromDateTime(startTime),
                             );
-                            if (time != null) {
+                            if (time != null && context.mounted) {
                               setState(() {
                                 startTime = DateTime(
                                   date.year,
@@ -512,14 +552,16 @@ class _TourTemplateActivitiesScreenState
                             context: context,
                             initialDate: endTime,
                             firstDate: startTime,
-                            lastDate: _template?.endDate ?? DateTime.now().add(const Duration(days: 365)),
+                            lastDate:
+                                _template?.endDate ??
+                                DateTime.now().add(const Duration(days: 365)),
                           );
-                          if (date != null) {
+                          if (date != null && context.mounted) {
                             final time = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.fromDateTime(endTime),
                             );
-                            if (time != null) {
+                            if (time != null && context.mounted) {
                               setState(() {
                                 endTime = DateTime(
                                   date.year,
@@ -546,6 +588,9 @@ class _TourTemplateActivitiesScreenState
             ),
             ElevatedButton(
               onPressed: () async {
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+
                 // Validate title
                 if (titleController.text.trim().isEmpty) {
                   setState(() {
@@ -556,19 +601,12 @@ class _TourTemplateActivitiesScreenState
 
                 // Validate time order
                 if (endTime.isBefore(startTime)) {
-                  // Show validation error with high z-index using overlay
-                  showDialog(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (BuildContext dialogContext) => AlertDialog(
-                      title: const Text('Invalid Time'),
-                      content: const Text('End time must be after start time'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('OK'),
-                        ),
-                      ],
+                  // Show validation error in the current dialog
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('End time must be after start time'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 3),
                     ),
                   );
                   return;
@@ -578,13 +616,13 @@ class _TourTemplateActivitiesScreenState
                   if (activity == null) {
                     await _calendarService.createCalendarEntry(
                       title: titleController.text.trim(),
-                      description: descriptionController.text.trim().isEmpty 
-                          ? null 
+                      description: descriptionController.text.trim().isEmpty
+                          ? null
                           : descriptionController.text.trim(),
                       startTime: startTime,
                       endTime: endTime,
-                      location: locationController.text.trim().isEmpty 
-                          ? null 
+                      location: locationController.text.trim().isEmpty
+                          ? null
                           : locationController.text.trim(),
                       activityType: activityType,
                       customTourId: widget.templateId,
@@ -594,21 +632,21 @@ class _TourTemplateActivitiesScreenState
                     await _calendarService.updateCalendarEntry(
                       activity.id,
                       title: titleController.text.trim(),
-                      description: descriptionController.text.trim().isEmpty 
-                          ? null 
+                      description: descriptionController.text.trim().isEmpty
+                          ? null
                           : descriptionController.text.trim(),
                       startTime: startTime,
                       endTime: endTime,
-                      location: locationController.text.trim().isEmpty 
-                          ? null 
+                      location: locationController.text.trim().isEmpty
+                          ? null
                           : locationController.text.trim(),
                       activityType: activityType,
                     );
                   }
 
                   if (mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    navigator.pop();
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           activity == null
@@ -621,8 +659,9 @@ class _TourTemplateActivitiesScreenState
                     _loadData();
                   }
                 } catch (e) {
+                  Logger.error('Failed to create/update activity: $e');
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Error: ${e.toString()}'),
                         backgroundColor: Colors.red,
@@ -643,18 +682,41 @@ class _TourTemplateActivitiesScreenState
     );
   }
 
-  Future<void> _addDefaultActivityToTemplate(CalendarEntry defaultActivity) async {
+  Future<void> _addDefaultActivityToTemplate(dynamic activity) async {
     try {
-      await _calendarService.createCalendarEntry(
-        title: defaultActivity.title,
-        description: defaultActivity.description,
-        startTime: _template!.startDate.add(const Duration(hours: 9)), // Default to 9 AM on first day
-        endTime: _template!.startDate.add(const Duration(hours: 10)), // 1 hour duration
-        location: defaultActivity.location,
-        activityType: defaultActivity.activityType,
-        customTourId: widget.templateId,
-        isDefaultActivity: false,
-      );
+      if (activity is DefaultActivity) {
+        // Calculate end time based on activity duration
+        final startTime = _template!.startDate.add(
+          const Duration(hours: 9),
+        ); // Default to 9 AM on first day
+        final endTime = activity.calculateEndTime(startTime);
+
+        await _calendarService.createCalendarEntry(
+          title: activity.activityName,
+          description: activity.description,
+          startTime: startTime,
+          endTime: endTime,
+          location: null, // DefaultActivity doesn't have location
+          activityType: 'default',
+          customTourId: widget.templateId,
+          isDefaultActivity: true,
+        );
+      } else if (activity is CalendarEntry) {
+        await _calendarService.createCalendarEntry(
+          title: activity.title,
+          description: activity.description,
+          startTime: _template!.startDate.add(
+            const Duration(hours: 9),
+          ), // Default to 9 AM on first day
+          endTime: _template!.startDate.add(
+            const Duration(hours: 10),
+          ), // 1 hour duration
+          location: activity.location,
+          activityType: activity.activityType,
+          customTourId: widget.templateId,
+          isDefaultActivity: false,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

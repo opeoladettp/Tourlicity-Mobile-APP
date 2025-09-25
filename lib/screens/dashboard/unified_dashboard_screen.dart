@@ -26,7 +26,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final tourProvider = Provider.of<TourProvider>(context, listen: false);
       
-      // Load data based on user role
+      // Load data based on user role (user data already loaded by main.dart)
       if (authProvider.user != null) {
         switch (authProvider.user!.userType) {
           case 'tourist':

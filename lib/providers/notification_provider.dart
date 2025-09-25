@@ -6,7 +6,7 @@ import '../utils/logger.dart';
 class NotificationProvider with ChangeNotifier {
   final MongoDBPushNotificationService _mongoDBService = MongoDBPushNotificationService();
   
-  String _notificationMethod = 'mongodb'; // Using MongoDB backend exclusively
+  final String _notificationMethod = 'mongodb'; // Using MongoDB backend exclusively
 
   bool _isInitialized = false;
   bool _pushNotificationsEnabled = true;

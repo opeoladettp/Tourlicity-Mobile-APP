@@ -380,12 +380,6 @@ class _TourTemplateBrowseScreenState extends State<TourTemplateBrowseScreen> {
               Navigator.of(context).pop();
               // Navigate to tour search to look for tours based on this template
               context.pop(); // Go back to previous screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Look for tours based on "${template.templateName}" template'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),

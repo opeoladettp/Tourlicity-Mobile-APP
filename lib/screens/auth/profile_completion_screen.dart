@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
 import '../../widgets/common/loading_overlay.dart';
 import '../../widgets/common/safe_bottom_padding.dart';
+import '../../models/user.dart';
 import '../../utils/logger.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
@@ -113,7 +114,51 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.person_add_rounded, size: 64, color: Colors.blue),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SizedBox(width: 48), // Spacer
+              const Icon(Icons.person_add_rounded, size: 64, color: Colors.blue),
+              // Debug button
+              IconButton(
+                onPressed: () async {
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  Logger.info('🐛 DEBUG: Force refreshing user data...');
+                  await authProvider.forceRefreshUserData();
+                  authProvider.debugProfileStatus();
+                  
+                  // Test parsing with sample database data
+                  Logger.info('🧪 Testing User.fromJson with sample database data...');
+                  try {
+                    final sampleData = {
+                      "_id": {"\$oid": "68d26ed7d0b8d61e6ba081b4"},
+                      "email": "opeyemioladejobi@gmail.com",
+                      "user_type": "system_admin",
+                      "first_name": "Opeyemi",
+                      "last_name": "Oladejobi",
+                      "profile_picture": "https://lh3.googleusercontent.com/a/ACg8ocKBpsYgTn_IepwmlMSgjMtuNVOG7Tz46BMb0jPnN7-ZxB3mgBAT",
+                      "is_active": true,
+                      "google_id": "108374755249700857162",
+                      "created_date": {"\$date": "2025-09-23T09:56:39.952Z"},
+                      "updated_date": {"\$date": "2025-09-24T15:49:47.766Z"},
+                      "__v": 0,
+                      "country": "Nigeria",
+                      "date_of_birth": {"\$date": "1991-09-04T00:00:00.000Z"},
+                      "gender": "male",
+                      "phone_number": "08189273082"
+                    };
+                    
+                    final testUser = User.fromJson(sampleData);
+                    Logger.info('✅ Test parsing successful: ${testUser.firstName} ${testUser.lastName}');
+                  } catch (e) {
+                    Logger.error('❌ Test parsing failed: $e');
+                  }
+                },
+                icon: const Icon(Icons.bug_report, color: Colors.red),
+                tooltip: 'Debug: Refresh User Data',
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           const Text(
             'Complete Your Profile',
@@ -625,7 +670,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         );
 
         // Navigate to unified dashboard
-        context.go(AppRoutes.dashboard);
+        if (mounted) {
+          context.go(AppRoutes.dashboard);
+        }
       }
     } catch (e) {
       Logger.error('Profile completion failed: $e');
