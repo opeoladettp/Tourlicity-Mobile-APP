@@ -2,11 +2,9 @@ import '../models/notification.dart';
 
 import '../utils/logger.dart';
 import 'api_service.dart';
-import 'broadcast_service.dart';
 
 class UserNotificationService {
   final ApiService _apiService = ApiService();
-  final BroadcastService _broadcastService = BroadcastService();
 
   // Cache to prevent duplicate API calls
   static List<AppNotification>? _cachedNotifications;
