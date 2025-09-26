@@ -31,19 +31,19 @@ class TourlicityApp extends StatelessWidget {
               context,
               listen: false,
             );
-            
+
             WidgetsBinding.instance.addPostFrameCallback((_) async {
-              // Start auth check first
-              await authProvider.checkAuthStatus();
+              // Start auth check first (non-blocking to prevent UI freeze)
+              authProvider.checkAuthStatus().catchError((e) {
+                Logger.error('Auth check failed: $e');
+              });
 
-              // Wait a bit before initializing notifications to prevent rate limiting
-              await Future.delayed(const Duration(seconds: 1));
-
-              // Initialize notifications in background (non-blocking)
-              // Using the captured provider reference instead of context
-              notificationProvider.initialize().catchError((e) {
-                // Silently handle initialization errors
-                Logger.error('Notification initialization failed: $e');
+              // Initialize notifications in background with longer delay to prevent rate limiting
+              Future.delayed(const Duration(seconds: 2), () {
+                notificationProvider.initialize().catchError((e) {
+                  // Silently handle initialization errors
+                  Logger.error('Notification initialization failed: $e');
+                });
               });
             });
           }

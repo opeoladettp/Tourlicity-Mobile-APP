@@ -41,19 +41,27 @@ class Tour {
 
   factory Tour.fromJson(Map<String, dynamic> json) {
     // Handle nested provider and template objects
-    String providerId = json['provider_id'];
+    String providerId = '';
     String? providerName;
-    String? tourTemplateId = json['tour_template_id'];
+    String? tourTemplateId;
     String? tourTemplateName;
     
+    // Handle provider_id (can be String or Map)
     if (json['provider_id'] is Map) {
-      providerId = json['provider_id']['_id'] ?? json['provider_id']['id'];
-      providerName = json['provider_id']['provider_name'];
+      final providerData = json['provider_id'] as Map<String, dynamic>;
+      providerId = providerData['_id'] ?? providerData['id'] ?? '';
+      providerName = providerData['provider_name'];
+    } else if (json['provider_id'] is String) {
+      providerId = json['provider_id'];
     }
     
+    // Handle tour_template_id (can be String or Map)
     if (json['tour_template_id'] is Map) {
-      tourTemplateId = json['tour_template_id']['_id'] ?? json['tour_template_id']['id'];
-      tourTemplateName = json['tour_template_id']['template_name'];
+      final templateData = json['tour_template_id'] as Map<String, dynamic>;
+      tourTemplateId = templateData['_id'] ?? templateData['id'];
+      tourTemplateName = templateData['template_name'];
+    } else if (json['tour_template_id'] is String) {
+      tourTemplateId = json['tour_template_id'];
     }
 
     return Tour(

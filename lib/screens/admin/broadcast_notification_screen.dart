@@ -339,27 +339,18 @@ class _BroadcastNotificationScreenState
                   labelText: 'Send To',
                   border: OutlineInputBorder(),
                 ),
-                items: [
+                items: const [
                   DropdownMenuItem(
                     value: 'all_users',
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Text('All Users', overflow: TextOverflow.ellipsis),
-                    ),
+                    child: Text('All Users'),
                   ),
                   DropdownMenuItem(
                     value: 'user_role',
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Text('Specific User Role', overflow: TextOverflow.ellipsis),
-                    ),
+                    child: Text('Specific User Role'),
                   ),
                   DropdownMenuItem(
                     value: 'specific_user',
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Text('Specific User', overflow: TextOverflow.ellipsis),
-                    ),
+                    child: Text('Specific User'),
                   ),
                 ],
                 onChanged: (value) {
@@ -373,6 +364,35 @@ class _BroadcastNotificationScreenState
               ),
             const SizedBox(height: 16),
             if (_selectedRecipientType == 'direct_notification') ...[
+              if (_selectedDirectRecipientType == 'all_users')
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      _isLoadingUsers 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.people, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _isLoadingUsers
+                            ? 'Loading users...'
+                            : 'This notification will be sent to all users in the system (${_users.length} users)',
+                          style: const TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (_selectedDirectRecipientType == 'user_role') _buildRoleSelection(),
               if (_selectedDirectRecipientType == 'specific_user')
                 _buildUserSelection(),
@@ -423,23 +443,9 @@ class _BroadcastNotificationScreenState
       items: _tours.map((tour) {
         return DropdownMenuItem(
           value: tour.id,
-          child: SizedBox(
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  tour.tourName,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '${tour.provider?.name ?? 'Unknown Provider'} • ${tour.statusDisplayName}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          child: Text(
+            '${tour.tourName} - ${tour.provider?.name ?? 'Unknown Provider'}',
+            overflow: TextOverflow.ellipsis,
           ),
         );
       }).toList(),
@@ -452,42 +458,68 @@ class _BroadcastNotificationScreenState
   }
 
   Widget _buildRoleSelection() {
-    return DropdownButtonFormField<String>(
-      initialValue: _selectedUserRole,
-      decoration: const InputDecoration(
-        labelText: 'User Role',
-        border: OutlineInputBorder(),
-      ),
-      items: [
-        DropdownMenuItem(
-          value: 'tourist', 
-          child: SizedBox(
-            width: double.infinity,
-            child: Text('Tourists', overflow: TextOverflow.ellipsis),
-          ),
+    if (_isLoadingUsers) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
         ),
-        DropdownMenuItem(
-          value: 'provider_admin',
-          child: SizedBox(
-            width: double.infinity,
-            child: Text('Provider Admins', overflow: TextOverflow.ellipsis),
-          ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('Loading user roles...'),
+          ],
         ),
-        DropdownMenuItem(
-          value: 'system_admin', 
-          child: SizedBox(
-            width: double.infinity,
-            child: Text('System Admins', overflow: TextOverflow.ellipsis),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _selectedUserRole,
+          decoration: const InputDecoration(
+            labelText: 'User Role',
+            border: OutlineInputBorder(),
           ),
+          items: [
+            DropdownMenuItem(
+              value: 'tourist', 
+              child: Text(
+                'Tourists (${_users.where((u) => u.userType == 'tourist').length})',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            DropdownMenuItem(
+              value: 'provider_admin',
+              child: Text(
+                'Provider Admins (${_users.where((u) => u.userType == 'provider_admin').length})',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            DropdownMenuItem(
+              value: 'system_admin', 
+              child: Text(
+                'System Admins (${_users.where((u) => u.userType == 'system_admin').length})',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _selectedUserRole = value;
+              });
+            }
+          },
         ),
       ],
-      onChanged: (value) {
-        if (value != null) {
-          setState(() {
-            _selectedUserRole = value;
-          });
-        }
-      },
     );
   }
 
@@ -527,23 +559,9 @@ class _BroadcastNotificationScreenState
       items: _users.map((user) {
         return DropdownMenuItem(
           value: user.id,
-          child: SizedBox(
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${user.firstName} ${user.lastName}',
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '${user.email} (${user.userType})',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          child: Text(
+            '${user.firstName} ${user.lastName} - ${user.email}',
+            overflow: TextOverflow.ellipsis,
           ),
         );
       }).toList(),
@@ -577,18 +595,30 @@ class _BroadcastNotificationScreenState
       // Direct notification logic
       switch (_selectedDirectRecipientType) {
         case 'all_users':
-          summary = 'All users will receive this notification';
-          color = Colors.blue;
-          icon = Icons.people;
+          if (_isLoadingUsers) {
+            summary = 'Loading user count...';
+            color = Colors.orange;
+            icon = Icons.hourglass_empty;
+          } else {
+            summary = 'All users (${_users.length} users) will receive this notification';
+            color = Colors.blue;
+            icon = Icons.people;
+          }
           break;
         case 'user_role':
-          final roleCount = _users
-              .where((u) => u.userType == _selectedUserRole)
-              .length;
-          summary =
-              'All $_selectedUserRole users ($roleCount users) will receive this notification';
-          color = Colors.green;
-          icon = Icons.group;
+          if (_isLoadingUsers) {
+            summary = 'Loading user count for $_selectedUserRole...';
+            color = Colors.orange;
+            icon = Icons.hourglass_empty;
+          } else {
+            final roleCount = _users
+                .where((u) => u.userType == _selectedUserRole)
+                .length;
+            summary =
+                'All $_selectedUserRole users ($roleCount users) will receive this notification';
+            color = Colors.green;
+            icon = Icons.group;
+          }
           break;
         case 'specific_user':
           if (_selectedUserId != null) {

@@ -12,8 +12,29 @@ class TourService {
     try {
       final response = await _apiService.get('/registrations/my');
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? response.data;
-        return data.map((json) => Registration.fromJson(json)).toList();
+        final responseData = response.data;
+        
+        // Handle different response structures
+        if (responseData is Map<String, dynamic>) {
+          // Try to get data from 'data' key first, then 'registrations', then direct response
+          final registrationsData = responseData['data'] ?? responseData['registrations'] ?? responseData;
+          
+          if (registrationsData is List) {
+            return registrationsData.map((json) => Registration.fromJson(json)).toList();
+          } else if (registrationsData is Map<String, dynamic> && registrationsData.containsKey('registrations')) {
+            // Handle nested registrations
+            final regList = registrationsData['registrations'];
+            if (regList is List) {
+              return regList.map((json) => Registration.fromJson(json)).toList();
+            }
+          }
+        } else if (responseData is List) {
+          // Handle direct list response
+          return responseData.map((json) => Registration.fromJson(json)).toList();
+        }
+        
+        Logger.warning('⚠️ Unexpected registrations response structure, returning empty list');
+        return [];
       }
       throw Exception('Failed to load registrations');
     } catch (e) {
@@ -135,7 +156,7 @@ class TourService {
   Future<Tour> createTour({
     required String providerId,
     required String tourName,
-    String? description,
+    String? description, // Keep parameter for backward compatibility but don't send to API
     String? tourTemplateId,
     DateTime? startDate,
     DateTime? endDate,
@@ -149,7 +170,6 @@ class TourService {
       data: {
         'provider_id': providerId,
         'tour_name': tourName,
-        if (description != null) 'description': description,
         if (tourTemplateId != null) 'tour_template_id': tourTemplateId,
         if (startDate != null)
           'start_date': startDate.toIso8601String().split('T')[0],

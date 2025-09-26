@@ -83,31 +83,36 @@ class UserNotificationService {
     final notifications = <AppNotification>[];
     
     try {
-      // Reduce API calls by making them optional and handling failures gracefully
-      List<dynamic> registrations = [];
-      List<dynamic> roleRequests = [];
-      
-      // Try to get registrations (non-blocking)
-      try {
-        registrations = await _getUserRegistrations();
-        notifications.addAll(_createTourNotifications(registrations));
-      } catch (e) {
-        Logger.debug('Skipping tour notifications due to API limit: $e');
-      }
-      
-      // Try to get role requests (non-blocking)  
-      try {
-        roleRequests = await _getUserRoleRequests();
-        notifications.addAll(_createRoleChangeNotifications(roleRequests));
-      } catch (e) {
-        Logger.debug('Skipping role change notifications due to API limit: $e');
-      }
-      
-      // Skip broadcast notifications to reduce API calls for now
-      // TODO: Re-enable when rate limiting is resolved
-      
-      // Always add system notifications (no API calls)
+      // Always add system notifications first (no API calls)
       notifications.addAll(_createSystemNotifications());
+      
+      // Make API calls in parallel with timeout to prevent blocking
+      final futures = <Future<void>>[];
+      
+      // Try to get registrations (non-blocking with timeout)
+      futures.add(
+        _getUserRegistrations()
+            .timeout(const Duration(seconds: 5))
+            .then((registrations) {
+          notifications.addAll(_createTourNotifications(registrations));
+        }).catchError((e) {
+          Logger.debug('Skipping tour notifications due to API issue: $e');
+        })
+      );
+      
+      // Try to get role requests (non-blocking with timeout)
+      futures.add(
+        _getUserRoleRequests()
+            .timeout(const Duration(seconds: 5))
+            .then((roleRequests) {
+          notifications.addAll(_createRoleChangeNotifications(roleRequests));
+        }).catchError((e) {
+          Logger.debug('Skipping role change notifications due to API issue: $e');
+        })
+      );
+      
+      // Wait for all API calls to complete or timeout
+      await Future.wait(futures);
       
     } catch (e) {
       Logger.warning('⚠️ Error generating notifications from user activity: $e');
@@ -127,7 +132,12 @@ class UserNotificationService {
         return response.data['data'] ?? response.data['registrations'] ?? [];
       }
     } catch (e) {
-      Logger.debug('Could not fetch user registrations: $e');
+      // Handle 403 errors gracefully - user might not have permission or be wrong user type
+      if (e.toString().contains('403')) {
+        Logger.debug('User does not have permission to access registrations (likely provider/admin user)');
+      } else {
+        Logger.debug('Could not fetch user registrations: $e');
+      }
     }
     return [];
   }
@@ -140,7 +150,12 @@ class UserNotificationService {
         return response.data['data'] ?? response.data['requests'] ?? [];
       }
     } catch (e) {
-      Logger.debug('Could not fetch role change requests: $e');
+      // Handle 403 errors gracefully - user might not have permission or be wrong user type
+      if (e.toString().contains('403')) {
+        Logger.debug('User does not have permission to access role change requests (likely provider/admin user)');
+      } else {
+        Logger.debug('Could not fetch role change requests: $e');
+      }
     }
     return [];
   }
