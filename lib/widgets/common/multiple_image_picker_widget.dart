@@ -82,10 +82,26 @@ class _MultipleImagePickerWidgetState extends State<MultipleImagePickerWidget> {
       });
 
       if (mounted) {
+        String errorMessage = 'Failed to upload images';
+        if (e.toString().contains('403')) {
+          errorMessage = 'Upload permission denied. Please check your account permissions.';
+        } else if (e.toString().contains('404')) {
+          errorMessage = 'Upload endpoint not found. Please contact support.';
+        } else if (e.toString().contains('413')) {
+          errorMessage = 'One or more image files are too large. Please choose smaller images.';
+        } else if (e.toString().contains('timeout')) {
+          errorMessage = 'Upload timed out. Please check your internet connection.';
+        } else if (e.toString().contains('Invalid file type')) {
+          errorMessage = 'Invalid image format. Please choose JPEG or PNG images only.';
+        } else {
+          errorMessage = 'Failed to upload images: ${e.toString()}';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to upload images: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
